@@ -14,9 +14,10 @@ dragged()        // are they being dragged? returns the delta in local coordinat
 dropped()        // was something dragged and released on them? returns the drop point
 ```
 
-Each applies to the shapes drawn *after* it, until the next such call or the end of
-the enclosing `push()` / `pop()`. That is exactly how p5's own `describeElement()`
-scopes itself, so if you know p5 you already know this:
+Each applies to the shapes drawn *after* it, until the end of the enclosing `push()` /
+`pop()`. Questions asked back to back share the shapes that follow; a question asked
+after a shape has been drawn starts a new group. That is exactly how p5's own
+`describeElement()` scopes itself, so if you know p5 you already know this:
 
 ```js
 function draw() {
@@ -46,7 +47,17 @@ p5 sketches keep it anyway.
 
 Or `npm install p5.interact`, or download [`p5.interact.js`](https://github.com/brysontang/p5.interact/blob/main/p5.interact.js)
 and load it from your own folder. It is a classic script that expects `p5` on `window`,
-like every p5 addon. Works in WEBGL and 2D, global and instance mode. MIT. Version 0.1: the ideas are settled,
+like every p5 addon. Load it once, right after p5: it wraps p5's drawing functions to
+see what you draw, so it should come before any other addon that does the same.
+Works in WEBGL and 2D, global and instance mode. MIT.
+
+One side effect to know up front: after `setup()` it sets `frameRate(Infinity)` so p5
+draws on every display refresh, unless your sketch called `frameRate()` itself. The
+[Frame pacing](#frame-pacing) section says why. To turn it off:
+
+```js
+interact.config.frameRate = null;
+``` Version 0.1: the ideas are settled,
 the names might still move.
 
 ## The questions
@@ -136,7 +147,8 @@ push(item);       // this scope is "item", wherever it lands in draw order
 
 Objects key by reference, strings and numbers by value. You need this when the held
 thing has to be drawn somewhere else while held, for instance last so it sits on top in
-2D. Use a key once per frame.
+2D. Use a key once per frame. If your data is rebuilt every frame, say parsed from JSON
+each time, an object never matches itself: key by something stable, `push(item.id)`.
 
 ## What gets picked
 
@@ -148,7 +160,7 @@ active in scope. Nothing is recorded otherwise, so a sketch that never asks pays
 | `rect`, `square` | rounded rect by signed distance, per-corner radii, honors `rectMode` |
 | `ellipse`, `circle` | exact ellipse, honors `ellipseMode` |
 | `triangle`, `quad`, `beginShape` … `endShape` | planar polygon, any orientation in 3D |
-| `line` | distance to segment, within `strokeWeight / 2` (min 3 units) |
+| `line` | distance to segment, within `strokeWeight / 2` and at least 3 screen pixels at any zoom |
 | `text` | font bounds, honors `textAlign` |
 | `image` | its rect, honors `imageMode` |
 | `plane` | its rect |

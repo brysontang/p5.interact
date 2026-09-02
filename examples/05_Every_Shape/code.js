@@ -50,7 +50,7 @@ function draw() {
   endShape(CLOSE);
   pop();
 
-  // A line, picked within its stroke weight
+  // A line, picked within its stroke weight (or three screen pixels, whichever is wider)
   push();
   stroke(hovered() ? 'orange' : 160);
   strokeWeight(hovered() ? 6 : 3);

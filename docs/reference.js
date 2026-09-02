@@ -8,7 +8,7 @@ const REFERENCE = {
     signature: 'hovered()',
     summary: 'Is the mouse over the shapes that follow?',
     description: [
-      'Returns <code>true</code> when the mouse was over any shape drawn after this call, in this scope, on the previous frame. The question applies until the next question in the same scope or the closing <code>pop()</code>, the same way <code>describeElement()</code> scopes itself.',
+      'Returns <code>true</code> when the mouse was over any shape drawn after this call, in this scope, on the previous frame. The question applies until the closing <code>pop()</code>, the same way <code>describeElement()</code> scopes itself. Questions asked back to back, like <code>hovered()</code> followed by <code>clicked()</code>, share the shapes that follow; a question asked after a shape has been drawn starts a new group.',
       'Nested scopes bubble: a hover on a child is a hover on its parent, like <code>:hover</code> in CSS. Called at top level, outside any <code>push()</code>, it means "over anything drawn after this".',
       'The answer is one frame behind the draw, like every immediate-mode UI. While a scope is being dragged it reports <code>true</code>, because what you hold is under the mouse by definition.',
     ],
@@ -492,7 +492,7 @@ function draw() {
     summary: 'Begin a scope. With a key, the scope keeps its identity across frames.',
     description: [
       'p5\'s <code>push()</code> saves drawing state. p5.interact also makes it the boundary of a question: a question applies until the closing <code>pop()</code>. Scopes are matched from one frame to the next by order, so the third <code>push()</code> this frame is the same thing as the third <code>push()</code> last frame.',
-      'Pass a key and the scope is identified by that key instead. Objects key by reference, strings and numbers by value. You need this when the thing you are dragging has to be drawn somewhere else while held, for instance last so it sits on top in 2D, or when the draw order changes mid-drag: items sorting, spawning, or filtering. Use a key once per frame.',
+      'Pass a key and the scope is identified by that key instead. Objects key by reference, strings and numbers by value. You need this when the thing you are dragging has to be drawn somewhere else while held, for instance last so it sits on top in 2D, or when the draw order changes mid-drag: items sorting, spawning, or filtering. Use a key once per frame. If your data is rebuilt every frame, an object never matches itself: key by something stable, <code>push(item.id)</code>.',
     ],
     params: [
       { name: 'key', type: 'Any (optional)', desc: 'An object, string, or number that identifies this scope across frames.' },
@@ -533,7 +533,7 @@ function draw() {
     description: [
       '<code>interact.config.clickSlop</code> (5): pixels of pointer travel before a press stops counting as a click and becomes a drag.',
       '<code>interact.config.cursor</code> (true): show a pointer cursor over anything interactive.',
-      '<code>interact.config.lineTolerance</code> (3): minimum half-width, in shape units, for picking a <code>line()</code>.',
+      '<code>interact.config.lineTolerance</code> (3): minimum half-width for picking a <code>line()</code>, in screen pixels, so thin lines stay hittable however far the camera is.',
       '<code>interact.config.frameRate</code> (Infinity): applied after <code>setup()</code> unless the sketch called <code>frameRate()</code> itself. p5 draws on a display refresh only if <code>1000 / target - 5</code> ms have passed, and the default target of 60 skips refreshes unevenly on 75 or 144 Hz screens, which reads as judder while dragging. Infinity draws on every refresh. Set it to <code>null</code> to leave p5 alone.',
       'Every function is also available under the <code>interact</code> namespace, as <code>interact.hovered()</code> and so on, for sketches that prefer not to use the bare globals.',
     ],

@@ -11,8 +11,10 @@
  *     noInteract()     the shapes that follow are drawn but not in click space
  *     localMouse()     the mouse in the current coordinate frame, { x, y }
  *
- * Each one applies to the shapes drawn AFTER it, until the next such call or the end
- * of the enclosing push()/pop(). That is the same scoping describeElement() uses:
+ * Each one applies to the shapes drawn AFTER it, until the end of the enclosing
+ * push()/pop(). Questions asked back to back share the shapes that follow; a question
+ * asked after a shape has been drawn starts a new group. That is the same scoping
+ * describeElement() uses:
  *
  *     push();
  *     fill(hovered() ? 200 : 60);
@@ -128,12 +130,14 @@
     return Math.hypot(u - (a[0] + t * dx), v - (a[1] + t * dy));
   }
 
-  function inShape2D(s, u, v) {
+  // upp: model units per screen pixel where the test happens, so line tolerance is a
+  // pixel floor however far the camera is.
+  function inShape2D(s, u, v, upp = 1) {
     switch (s.kind) {
       case 'rect': return roundRectSDF(u - s.x, v - s.y, s.w, s.h, s.r) <= 0;
       case 'ellipse': { const x = (u - s.cx) / s.a, y = (v - s.cy) / s.b; return x * x + y * y <= 1; }
       case 'poly': return pointInPoly(s.pts, u, v);
-      case 'line': return segDist2(u, v, s.a, s.b) <= s.tol;
+      case 'line': return segDist2(u, v, s.a, s.b) <= Math.max(s.sw, config.lineTolerance * upp);
       default: return false;
     }
   }
@@ -195,7 +199,7 @@
     return { t };
   }
 
-  function raySegment(o, d, a, b, tol) {
+  function raySegment(o, d, a, b) {
     // Closest approach between ray o + t d (t in [0,1]) and segment a + s (b - a) (s in [0,1]).
     const u = d, v = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], w0 = [o[0] - a[0], o[1] - a[1], o[2] - a[2]];
     const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
@@ -207,10 +211,10 @@
     t = Math.max(0, Math.min(1, t));
     const p = [o[0] + t * u[0], o[1] + t * u[1], o[2] + t * u[2]];
     const q = [a[0] + s * v[0], a[1] + s * v[1], a[2] + s * v[2]];
-    return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) <= tol ? { t } : null;
+    return { t, dist: Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) };
   }
 
-  function hitGL(s, nx, ny) {
+  function hitGL(s, nx, ny, pxNdc) {
     const inv = s.inv || (s.inv = inv4(s.mvp));
     if (!inv) return null;
     const ray = modelRay(inv, nx, ny);
@@ -232,7 +236,17 @@
         const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
         return pointInPoly(pl.pts2, p[pl.keep[0]], p[pl.keep[1]]) ? { t, u: p[0], v: p[1] } : null;
       }
-      case 'line': return raySegment(o, d, s.a, s.b, s.tol);
+      case 'line': {
+        const h = raySegment(o, d, s.a, s.b);
+        if (!h) return null;
+        // model units per screen pixel at the depth of the closest approach
+        const r2 = modelRay(inv, nx + pxNdc, ny);
+        const upp = r2 ? Math.hypot(
+          (r2.o[0] + h.t * r2.d[0]) - (o[0] + h.t * d[0]),
+          (r2.o[1] + h.t * r2.d[1]) - (o[1] + h.t * d[1]),
+          (r2.o[2] + h.t * r2.d[2]) - (o[2] + h.t * d[2])) : 0;
+        return h.dist <= Math.max(s.sw, config.lineTolerance * upp) ? { t: h.t } : null;
+      }
       case 'box': return rayBox(o, d, s.w, s.h, s.d);
       case 'sphere': return raySphere(o, d, s.r);
       default: return null;
@@ -244,7 +258,7 @@
   const config = {
     clickSlop: 5,       // px of pointer travel before a press is a drag, not a click
     cursor: true,       // pointer cursor over anything interactive
-    lineTolerance: 3,   // minimum half-width, in shape units, for picking lines
+    lineTolerance: 3,   // minimum half-width for picking lines, in screen pixels
     frameRate: Infinity, // applied after setup() unless the sketch called frameRate() itself; null = leave p5 alone
   };
 
@@ -329,9 +343,10 @@
     if (isGL(p)) {
       const nx = (2 * mx) / p.width - 1, ny = 1 - (2 * my) / p.height;
       if (nx < -1 || nx > 1 || ny < -1 || ny > 1) return null;
+      const pxNdc = 2 / p.width;
       for (const s of shapes) {
         if (skipId && s.regions.includes(skipId)) continue; // what you hold is not in click space
-        const h = hitGL(s, nx, ny);
+        const h = hitGL(s, nx, ny, pxNdc);
         if (!h) continue;
         // nearest wins; at equal depth the later-drawn wins, like paint (p5 draws with LEQUAL)
         if (h.t < score - 1e-9 || (Math.abs(h.t - score) <= 1e-9 && s.order > best.shape.order)) {
@@ -346,7 +361,8 @@
         if (skipId && s.regions.includes(skipId)) continue;
         const inv = s.inv || (s.inv = s.m2d.inverse());
         const q = inv.transformPoint(pt);
-        if (inShape2D(s, q.x, q.y) && -s.order < score) { score = -s.order; best = { shape: s, u: q.x, v: q.y }; }
+        const upp = pd * Math.hypot(inv.a, inv.b); // one CSS pixel, in this shape's units
+        if (inShape2D(s, q.x, q.y, upp) && -s.order < score) { score = -s.order; best = { shape: s, u: q.x, v: q.y }; }
       }
     }
     return best;
@@ -395,13 +411,15 @@
     return { kind: 'poly', pts3, pts: pts3.map((p) => [p[0], p[1]]) };
   }
 
-  function lineTol(p) {
-    return Math.max((p._renderer.states.strokeWeight || 1) / 2, config.lineTolerance);
+  function strokeHalf(p) {
+    return (p._renderer.states.strokeWeight || 1) / 2;
   }
 
   // ---------------------------------------------------------------- the addon
 
   function addon(p5, fn, lifecycles) {
+    if (fn.__p5interact) return; // loaded twice: never wrap the primitives a second time
+    fn.__p5interact = true;
     const orig = {};
     for (const name of ['push', 'pop', 'rect', 'square', 'ellipse', 'circle', 'triangle', 'quad', 'line',
       'text', 'image', 'plane', 'box', 'sphere', 'beginShape', 'vertex', 'endShape', 'frameRate']) {
@@ -542,7 +560,7 @@
       const out = orig.line.apply(this, a);
       if (listening(state(this))) {
         const [p, q] = a.length >= 6 ? [[a[0], a[1], a[2]], [a[3], a[4], a[5]]] : [[a[0], a[1], 0], [a[2], a[3], 0]];
-        record(this, { kind: 'line', a: p, b: q, tol: lineTol(this) });
+        record(this, { kind: 'line', a: p, b: q, sw: strokeHalf(this) });
       }
       return out;
     };
