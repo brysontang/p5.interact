@@ -212,6 +212,14 @@ a 710 × 400 sketch, a description, the code beneath it, editable.
 `bench/drag-latency` is a diagnostic, not an example: library drag vs hand-rolled drag vs
 bare cursor, with frame-gap measurement and every knob.
 
+## Releasing
+
+```
+npm version minor        # bumps package.json, syncs the version in this README and the docs, commits, tags
+git push --follow-tags   # the tag triggers a GitHub release with notes from merged pull requests
+npm publish
+```
+
 ## Limits
 
 - Only shapes drawn after a question are recorded, so an inert shape does not occlude

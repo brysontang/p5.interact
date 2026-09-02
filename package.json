@@ -35,6 +35,7 @@
     "p5": ">=2.0.0"
   },
   "scripts": {
-    "dev": "python3 dev.py"
+    "dev": "python3 dev.py",
+    "version": "node scripts/sync-version.js && git add README.md docs/render.js"
   }
 }
