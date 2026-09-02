@@ -19,7 +19,6 @@ function draw() {
 
   // The circle. dragged() returns { x, y } while it is being dragged,
   // and null otherwise.
-  push();
   let d = dragged();
   if (d) {
     ball.x += d.x;
@@ -27,7 +26,6 @@ function draw() {
   }
   fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
   circle(ball.x, ball.y, 140);
-  pop();
 
   // The panel. dragged() is asked once, before translate(), so the delta is in
   // canvas units and everything drawn after it moves together.

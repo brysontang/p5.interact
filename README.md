@@ -40,6 +40,17 @@ function draw() {
 No ids, no names, no handles, no registration. State lives in your variables, where
 p5 sketches keep it anyway.
 
+`push()` and `pop()` are only there for what they always do in p5: the `translate` and
+the `fill`. The questions don't need them. A question asked after a shape has been
+drawn starts a new group, so this works exactly the way two `fill()` calls work:
+
+```js
+fill(hovered() ? 'red' : 'yellow');
+circle(100, 100, 40);
+fill(hovered() ? 'red' : 'orange');
+circle(200, 200, 40);
+```
+
 ```html
 <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.1/p5.interact.js"></script>
@@ -119,15 +130,13 @@ holds the few knobs: `clickSlop`, `cursor`, `lineTolerance`, `frameRate`.
 
 ## Two things to know
 
-**Only shapes after a question are picked.** In this scope the first circle is plain
-drawing and the second one lights up:
+**Only shapes after a question are picked.** Here the first circle is plain drawing
+and the second one lights up:
 
 ```js
-push();
 circle(200, 200, 60);
 fill(hovered() ? 0 : 255);
 circle(100, 200, 60);
-pop();
 ```
 
 Something drawn *before* the hovered thing can react to it through a variable, the

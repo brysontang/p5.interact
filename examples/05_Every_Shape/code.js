@@ -11,23 +11,18 @@ function draw() {
   background(30);
   noStroke();
 
-  // A rounded rectangle
-  push();
+  // A rounded rectangle. Each question after a shape starts a new group,
+  // so these need no push() / pop().
   fill(hovered() ? 'orange' : 'steelblue');
   rect(40, 40, 150, 100, 24);
-  pop();
 
   // An ellipse
-  push();
   fill(hovered() ? 'orange' : 'seagreen');
   ellipse(310, 90, 170, 90);
-  pop();
 
   // A triangle
-  push();
   fill(hovered() ? 'orange' : 'indianred');
   triangle(430, 140, 510, 30, 590, 140);
-  pop();
 
   // A quad, rotated and scaled: picking follows the transform
   push();
@@ -39,7 +34,6 @@ function draw() {
   pop();
 
   // A polygon built from vertices
-  push();
   fill(hovered() ? 'orange' : 'darkcyan');
   beginShape();
   vertex(320, 190);
@@ -48,7 +42,6 @@ function draw() {
   vertex(330, 330);
   vertex(270, 260);
   endShape(CLOSE);
-  pop();
 
   // A line, picked within its stroke weight (or three screen pixels, whichever is wider)
   push();
@@ -64,7 +57,8 @@ function draw() {
   text('text', 560, 190);
   pop();
 
-  // Name what is under the mouse
+  // Name what is under the mouse. The label is not a shape to pick.
+  noInteract();
   let hit = hitInfo();
   fill(150);
   textSize(14);

@@ -31,7 +31,7 @@ function draw() {
 }`,
       },
       {
-        caption: 'Two scopes, two answers. push() and pop() end one question and begin another.',
+        caption: 'Two questions, two answers. A question asked after a shape starts a new group, so this works exactly like fill(): no push() needed.',
         code: `
 function setup() {
   createCanvas(320, 220);
@@ -41,15 +41,11 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   fill(hovered() ? 'orange' : 'steelblue');
   circle(100, 110, 100);
-  pop();
 
-  push();
   fill(hovered() ? 'orange' : 'seagreen');
   rect(180, 60, 100, 100, 16);
-  pop();
 }`,
       },
       {
@@ -63,16 +59,14 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   fill(200);
   circle(100, 110, 90);          // before the question: not part of it
   fill(hovered() ? 255 : 120);
   circle(220, 110, 90);          // after it: lights up
-  pop();
 }`,
       },
       {
-        caption: 'Nothing bubbles. Left: the panel asks once and its dots inherit, so they light together. Right: each dot asks for itself, so only the dot lights and the panel stays dark.',
+        caption: 'Nothing bubbles. Left: the panel asks once and its dots inherit, so they light together. Right: each dot asks for itself, so only the dot lights and the panel stays dark. push() and pop() here only keep the two panels apart.',
         code: `
 function setup() {
   createCanvas(320, 220);
@@ -91,15 +85,13 @@ function draw() {
   for (let i = 0; i < 3; i++) circle(85, 70 + i * 50, 34);
   pop();
 
-  // Ask in each dot: the innermost question wins, the panel answers false
+  // Ask in each dot: each question after a shape is a new group, so only the dot lights
   push();
   fill(hovered() ? 70 : 45);
   rect(165, 30, 140, 160, 14);
   for (let i = 0; i < 3; i++) {
-    push();
     fill(hovered() ? 'gold' : 'steelblue');
     circle(235, 70 + i * 50, 34);
-    pop();
   }
   pop();
 }`,
@@ -135,11 +127,9 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   if (clicked()) on = !on;
   fill(on ? 'gold' : hovered() ? 120 : 80);
   rect(90, 70, 140, 80, 20);
-  pop();
 }`,
       },
       {
@@ -157,12 +147,11 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   fill(hovered() ? 'orange' : 'steelblue');
   clicked(() => count++);
   circle(160, 100, 100);
-  pop();
 
+  noInteract();                  // the caption is not a button
   fill(255);
   text(count + ' clicks', 160, 190);
 }`,
@@ -195,12 +184,10 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   const d = dragged();
   if (d) { pos.x += d.x; pos.y += d.y; }
   fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
   circle(pos.x, pos.y, 80);
-  pop();
 }`,
       },
       {
@@ -355,7 +342,6 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   const s = scrolled();
   if (s) offset = constrain(offset + s.y, 0, 400);
   fill(45);
@@ -365,7 +351,6 @@ function draw() {
     const y = 40 + i * 30 - offset;
     if (y > 20 && y < 190) text('item ' + (i + 1), 60, y);
   }
-  pop();
 }`,
       },
     ],
@@ -640,14 +625,13 @@ function draw() {
   background(30);
   noStroke();
 
-  push();
   if (clicked()) clicks++;
   const d = dragged();
   if (d) { pos.x += d.x; pos.y += d.y; }
   fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
   circle(pos.x, pos.y, 80);
-  pop();
 
+  noInteract();
   fill(255);
   text(clicks + ' clicks · slop ' + interact.config.clickSlop + 'px', 160, 200);
 }`,
