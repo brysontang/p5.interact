@@ -4,7 +4,7 @@ Interaction for p5 without ceremony.
 
 **[Reference](https://brysontang.github.io/p5.interact/docs/)** · **[Examples](https://brysontang.github.io/p5.interact/examples/)**, with the code running live beside every page.
 
-A p5 2.x addon, one file, no build step. It adds four questions you can ask inside
+A p5 2.x addon, one file, no build step. It adds five questions you can ask inside
 `draw()`:
 
 ```js
@@ -12,6 +12,7 @@ hovered()        // is the mouse over the shapes that follow?
 clicked(fn?)     // were they clicked? (and: call fn when they are)
 dragged()        // are they being dragged? returns the delta in local coordinates
 dropped()        // was something dragged and released on them? returns the drop point
+scrolled(fn?)    // was the wheel scrolled over them? returns the delta
 ```
 
 Each applies to the shapes drawn *after* it, until the end of the enclosing `push()` /
@@ -88,6 +89,12 @@ per frame: a second `dragged()` on the same scope in the same frame returns `{ x
 shapes in scope, in the coordinates of the frame where you call it, or `null`. What was
 dropped is whatever your sketch was holding; keep it in a variable when `dragged()`
 first returns a delta. See `examples/02_Drag_Between_Boxes`.
+
+**`scrolled(fn?)`** returns `{ x, y }`, the wheel delta accumulated over the last frame
+while the wheel was over the shapes in scope, or `null`. Positive `y` is down or away,
+p5's sign. With a function, it calls it once per wheel event as `fn(event, hit)` with
+`event.delta` set the way `mouseWheel()` sets it; return `false` to consume the event so
+the page doesn't scroll and `orbitControl()` doesn't zoom.
 
 **`noInteract()`** makes the shapes that follow in this scope drawn but not picked, until
 `pop()` or the next question. `noFill()` for click space: ghosts, labels, backgrounds.

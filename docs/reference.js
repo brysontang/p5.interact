@@ -299,6 +299,79 @@ function drawBall() {
     seeAlso: ['dragged', 'localMouse', 'push', 'noInteract'],
   },
 
+  scrolled: {
+    group: 'Questions',
+    signature: 'scrolled([fn])',
+    summary: 'Was the wheel scrolled over the shapes that follow?',
+    description: [
+      'Returns <code>{ x, y }</code>, the wheel delta accumulated over the last frame while the wheel was over the shapes drawn after this call, or <code>null</code>. Positive <code>y</code> is scrolling down or away from you, the same sign p5 uses.',
+      'With a function, it also calls that function once per wheel event, as <code>fn(event, hit)</code>, with <code>event.delta</code> set the way p5\'s <code>mouseWheel()</code> sets it. Return <code>false</code> from the function to consume the event: the page will not scroll and <code>orbitControl()</code> will not zoom. Like every question, it is answered for the innermost scope that asked.',
+    ],
+    params: [
+      { name: 'fn', type: 'Function (optional)', desc: 'Called per wheel event with the event and the hit record. Return <code>false</code> to consume the event.' },
+    ],
+    returns: '<code>{ x, y }</code> for the last frame\'s scrolling, else <code>null</code>.',
+    examples: [
+      {
+        caption: 'A dial. Scroll over it to turn it; the page stays put because the handler returns false.',
+        code: `
+let angle = 0;
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(CENTER, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  push();
+  scrolled((e) => { angle += e.delta * 0.005; return false; });
+  fill(hovered() ? 70 : 50);
+  circle(160, 100, 130);
+  stroke('gold');
+  strokeWeight(4);
+  line(160, 100, 160 + 55 * cos(angle), 100 + 55 * sin(angle));
+  pop();
+
+  fill(200);
+  text('scroll over the dial', 160, 200);
+}`,
+      },
+      {
+        caption: 'Polling. scrolled() returns the frame\'s delta, so a list can scroll only when the wheel is over it.',
+        code: `
+let offset = 0;
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(LEFT, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  push();
+  const s = scrolled();
+  if (s) offset = constrain(offset + s.y, 0, 400);
+  fill(45);
+  rect(40, 20, 240, 180, 12);
+  fill(200);
+  for (let i = 0; i < 20; i++) {
+    const y = 40 + i * 30 - offset;
+    if (y > 20 && y < 190) text('item ' + (i + 1), 60, y);
+  }
+  pop();
+}`,
+      },
+    ],
+    seeAlso: ['clicked', 'dragged', 'hovered'],
+  },
+
   dragging: {
     group: 'Questions',
     signature: 'dragging()',

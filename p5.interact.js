@@ -2,12 +2,13 @@
  * p5.interact — interaction for p5 without ceremony.
  *
  * A p5 2.x addon. Load it after p5.js and before your sketch. Works in WEBGL and 2D,
- * in global and instance mode. It adds four questions you can ask inside draw():
+ * in global and instance mode. It adds five questions you can ask inside draw():
  *
  *     hovered()        is the mouse over the shapes that follow?
  *     clicked(fn?)     were they clicked? (and: call fn when they are)
  *     dragged()        are they being dragged? returns the delta in local coordinates
  *     dropped()        was something dragged and released on them? returns the drop point
+ *     scrolled(fn?)    was the wheel scrolled over them? returns the delta (and: call fn per event)
  *     noInteract()     the shapes that follow are drawn but not in click space
  *     localMouse()     the mouse in the current coordinate frame, { x, y }
  *
@@ -275,6 +276,7 @@
       frozen: { regions: new Map(), shapes: [] },
       hoveredIds: new Set(), clickedIds: new Set(), nextClicked: new Set(),
       droppedIds: new Map(), nextDropped: new Map(),
+      scrolledIds: new Map(), nextScrolled: new Map(),
       hover: null, drag: null, down: null, cursor: null,
       verts: null,
       keyIds: new WeakMap(), nextKeyId: 1,
@@ -310,7 +312,7 @@
     let r = scope.region;
     if (!r || !r.fresh) {
       const id = scope.key != null ? `${scope.key}.${scope.n++}` : `o${st.regions.size}`;
-      r = { id, fresh: true, hover: false, clicks: [], click: false, drag: false, drop: false };
+      r = { id, fresh: true, hover: false, clicks: [], click: false, drag: false, drop: false, scroll: false, scrolls: [] };
       st.regions.set(id, r);
       scope.region = r;
     }
@@ -510,6 +512,18 @@
       return pt ? { x: pt[0], y: pt[1] } : { x: 0, y: 0 };
     };
 
+    /** scrolled(fn?): { x, y } wheel delta accumulated over the last frame while the wheel was over
+     *  the shapes that follow, else null. With a function, calls fn(event, hit) per wheel event, with
+     *  event.delta set the way p5's mouseWheel() does; return false from fn to consume the event
+     *  (no page scroll, no orbitControl zoom). */
+    fn.scrolled = function (handler) {
+      const st = state(this);
+      const r = region(this);
+      r.scroll = true;
+      if (typeof handler === 'function') r.scrolls.push(handler);
+      return st.scrolledIds.get(r.id) || null;
+    };
+
     /** noInteract(): the shapes that follow in this scope are drawn but not picked,
      *  until pop() or the next question. Like noFill() for click space. */
     fn.noInteract = function () {
@@ -701,6 +715,19 @@
         }
       }, opt);
       el.addEventListener('pointercancel', () => { st.down = null; st.drag = null; }, opt);
+      el.addEventListener('wheel', (e) => {
+        const [mx, my] = canvasXY(e);
+        const hit = resolve(this, st, mx, my);
+        const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'scroll');
+        if (!target) return;
+        const acc = st.nextScrolled.get(target.id) || { x: 0, y: 0 };
+        acc.x += e.deltaX; acc.y += e.deltaY;
+        st.nextScrolled.set(target.id, acc);
+        e.delta = e.deltaY; // p5's mouseWheel() convention
+        for (const h of target.scrolls) {
+          if (h(e, hit) === false) { e.preventDefault(); e.stopPropagation(); }
+        }
+      }, this._removeSignal ? { signal: this._removeSignal, passive: false } : { passive: false });
     };
 
     lifecycles.predraw = function () {
@@ -713,6 +740,8 @@
       st.nextClicked = new Set();
       st.droppedIds = st.nextDropped;
       st.nextDropped = new Map();
+      st.scrolledIds = st.nextScrolled;
+      st.nextScrolled = new Map();
     };
 
     lifecycles.postdraw = function () {
@@ -750,6 +779,7 @@
     clicked: (fn) => inst().clicked(fn),
     dragged: () => inst().dragged(),
     dropped: () => inst().dropped(),
+    scrolled: (fn) => inst().scrolled(fn),
     dragging: () => inst().dragging(),
     noInteract: () => inst().noInteract(),
     localMouse: () => inst().localMouse(),
