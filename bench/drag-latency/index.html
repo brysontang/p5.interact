@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>p5.interact · drag-latency</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
+    <script src="../../p5.interact.js"></script>
+    <link rel="stylesheet" type="text/css" href="../style.css">
+  </head>
+  <body>
+    <main>
+      <div id="container">
+        <div id="sketch"></div>
+        <div id="tool-bar">
+          <h2><a href="../../examples/">examples</a> · drag-latency</h2>
+          <p>Three things to compare while you drag:</p>
+          <p><b style="color:#9cf">blue</b> p5.interact <code>dragged()</code><br>
+             <b style="color:#fc9">orange</b> hand-rolled <code>movedX / movedY</code>, no library<br>
+             <b style="color:#ccc">ring</b> bare <code>circle(mouseX, mouseY)</code>, the browser's floor</p>
+
+          <p>Click slop <code id="slop-value"></code></p>
+          <input type="range" id="slop" min="0" max="10" step="1" value="5" />
+
+          <p>Needs a reload:</p>
+          <p>
+            <button data-q="renderer=webgl">WEBGL</button>
+            <button data-q="renderer=2d">2D</button>
+            <button data-q="desync=1">desynchronized</button>
+            <button data-q="density=1">pixelDensity 1</button>
+            <button data-q="pdb=0">no preserveDrawingBuffer</button>
+            <button data-q="aa=0">no antialias</button>
+            <button data-q="fr=60">p5 default pacing (60)</button>
+            <button data-q="">reset</button>
+          </p>
+          <p>Now <code id="mode"></code></p>
+          <p>Context says <code id="ctx-actual">–</code></p>
+
+          <p>display <code id="hz">–</code> Hz · target <code id="target">–</code></p>
+          <p>fps <code id="fps">–</code></p>
+          <p>frame gaps <code id="gaps">–</code></p>
+          <p>pointer age at draw <code id="age">–</code> ms</p>
+          <p>pixel density <code id="pd">–</code> · canvas <code id="px">–</code></p>
+          <p class="hint">p5 draws on a refresh only if at least (1000 / target − 5) ms passed since the last draw, and frameRate() reports 1000 / the last gap. On a display that is not 60 Hz that skips refreshes in a pattern, so the gaps alternate and the number flickers. p5.interact sets frameRate(Infinity) after setup so no refresh is skipped; "p5 default pacing" calls frameRate(60) to show what plain p5 does.</p>
+          <p class="hint">"pointer age" is how old the last pointermove was when draw() ran. Around one frame (16 ms) is the browser doing its thing; more than that is something in the sketch.</p>
+          <p class="hint">Fill rate is the usual suspect: retina doubles both axes (4x the pixels), antialias multisamples each one, and p5 creates WEBGL contexts with preserveDrawingBuffer on, so the browser copies the frame instead of swapping it. Chrome on macOS honors the desynchronized hint for 2D canvases but not WebGL.</p>
+        </div>
+      </div>
+    </main>
+    <script src="./sketch.js"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+  color: white;
+  font: 14px system-ui, sans-serif;
+}
+canvas { display: block; }
+
+#container { display: flex; width: 100vw; height: 100vh; }
+#sketch { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+#tool-bar { background-color: #333; padding: 12px; flex: 0 0 300px; width: 300px; max-width: 45vw; overflow-y: auto; font-size: 13px; }
+#tool-bar p, #tool-bar code { overflow-wrap: anywhere; }
+#tool-bar h2 { margin: 0 0 8px; font-size: 14px; }
+#tool-bar p { margin: 6px 0; }
+#tool-bar code { color: #ffd479; }
+#tool-bar .hint { color: #bbb; }
+#tool-bar button { margin: 4px 4px 4px 0; }
+#tool-bar a { color: #9cf; }
+
+body.index main { max-width: 640px; margin: 60px auto; padding: 0 20px; line-height: 1.5; }
+body.index a { color: #9cf; }
+body.index li { margin: 8px 0; }

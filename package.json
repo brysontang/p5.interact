@@ -1,0 +1,40 @@
+{
+  "name": "p5.interact",
+  "version": "0.1.0",
+  "description": "Interaction for p5.js without ceremony: hovered(), clicked(), dragged(), dropped(), scoped by push/pop.",
+  "main": "p5.interact.js",
+  "files": [
+    "p5.interact.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "p5",
+    "p5.js",
+    "p5js",
+    "addon",
+    "library",
+    "interaction",
+    "hover",
+    "click",
+    "drag",
+    "drop",
+    "picking"
+  ],
+  "author": "Bryson Tang",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brysontang/p5.interact.git"
+  },
+  "homepage": "https://github.com/brysontang/p5.interact#readme",
+  "bugs": {
+    "url": "https://github.com/brysontang/p5.interact/issues"
+  },
+  "peerDependencies": {
+    "p5": ">=2.0.0"
+  },
+  "scripts": {
+    "dev": "python3 dev.py"
+  }
+}
