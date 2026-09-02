@@ -29,9 +29,9 @@
  * immediate-mode UI. While a scope is being dragged its shapes are skipped by picking,
  * so whatever is underneath can answer hovered() and dropped().
  *
- * Hover bubbles: hovering a child scope hovers its parents too, like :hover in CSS.
- * Actions do not: a click, a drag, or a drop goes to the innermost scope that asked
- * for it, and stops there. A button inside a card does not also click the card.
+ * Nothing bubbles. Every question is answered for the innermost scope that asked it:
+ * a button inside a card does not also click or hover the card. To make a group
+ * respond together, ask once at the group and let its children inherit the answer.
  *
  * Picking is geometric. Each primitive records its arguments and the current matrix.
  * At frame end the mouse is unprojected into each shape's own space and tested
@@ -310,7 +310,7 @@
     let r = scope.region;
     if (!r || !r.fresh) {
       const id = scope.key != null ? `${scope.key}.${scope.n++}` : `o${st.regions.size}`;
-      r = { id, fresh: true, clicks: [], click: false, drag: false, drop: false };
+      r = { id, fresh: true, hover: false, clicks: [], click: false, drag: false, drop: false };
       st.regions.set(id, r);
       scope.region = r;
     }
@@ -336,6 +336,21 @@
     if (isGL(p)) shape.mvp = currentMVP(p);
     else shape.m2d = p._renderer.drawingContext.getTransform();
     st.shapes.push(shape);
+  }
+
+  // Of the scopes a shape was drawn in, the innermost one that asked a given question.
+  // Nothing bubbles: that scope alone gets the answer.
+  function innermost(regions, regs, flag) {
+    for (let i = regs.length - 1; i >= 0; i--) {
+      const r = regions.get(regs[i]);
+      if (r && r[flag]) return r;
+    }
+    return null;
+  }
+
+  function hoverSet(regions, hit) {
+    const r = hit ? innermost(regions, hit.shape.regions, 'hover') : null;
+    return new Set(r ? [r.id] : []);
   }
 
   function resolve(p, st, mx, my, skipId) {
@@ -471,6 +486,7 @@
     fn.hovered = function () {
       const st = state(this);
       const r = region(this);
+      r.hover = true;
       return st.hoveredIds.has(r.id) || !!(st.drag && st.drag.id === r.id); // what you hold is under the mouse
     };
 
@@ -654,13 +670,8 @@
         st.down = { x: e.clientX, y: e.clientY, button: e.button };
         const hit = resolve(this, st, mx, my);
         st.drag = null;
-        if (hit && e.button === 0) {
-          const regs = hit.shape.regions;
-          for (let i = regs.length - 1; i >= 0; i--) {
-            const r = st.frozen.regions.get(regs[i]);
-            if (r && r.drag) { st.drag = { id: r.id, startX: mx, startY: my, lastX: mx, lastY: my, active: false, frame: -1, delta: null }; break; }
-          }
-        }
+        const target = hit && e.button === 0 ? innermost(st.frozen.regions, hit.shape.regions, 'drag') : null;
+        if (target) st.drag = { id: target.id, startX: mx, startY: my, lastX: mx, lastY: my, active: false, frame: -1, delta: null };
       }, opt);
       el.addEventListener('pointerup', (e) => {
         const d = st.down;
@@ -674,30 +685,19 @@
           // not counting what was held. Actions do not bubble; hover does.
           const hit = resolve(this, st, mx, my, drag.id);
           st.hover = hit;
-          st.hoveredIds = new Set(hit ? hit.shape.regions : []);
-          if (hit) {
-            const regs = hit.shape.regions;
-            for (let i = regs.length - 1; i >= 0; i--) {
-              const r = st.frozen.regions.get(regs[i]);
-              if (r && r.drop) { st.nextDropped.set(r.id, { mx, my }); break; }
-            }
-          }
+          st.hoveredIds = hoverSet(st.frozen.regions, hit);
+          const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'drop');
+          if (target) st.nextDropped.set(target.id, { mx, my });
           return;
         }
         if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > config.clickSlop) return;
         const hit = resolve(this, st, mx, my, null);
         st.hover = hit;
-        st.hoveredIds = new Set(hit ? hit.shape.regions : []);
-        if (!hit) return;
-        // a click: the innermost scope that asked clicked(), and only that one
-        const regs = hit.shape.regions;
-        for (let i = regs.length - 1; i >= 0; i--) {
-          const r = st.frozen.regions.get(regs[i]);
-          if (r && r.click) {
-            st.nextClicked.add(r.id);
-            for (const h of r.clicks) h(e, hit);
-            break;
-          }
+        st.hoveredIds = hoverSet(st.frozen.regions, hit);
+        const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'click');
+        if (target) {
+          st.nextClicked.add(target.id);
+          for (const h of target.clicks) h(e, hit);
         }
       }, opt);
       el.addEventListener('pointercancel', () => { st.down = null; st.drag = null; }, opt);
@@ -720,7 +720,7 @@
       st.frozen = { regions: st.regions, shapes: st.shapes };
       const hit = resolve(this, st, this.mouseX, this.mouseY);
       st.hover = hit;
-      st.hoveredIds = new Set(hit ? hit.shape.regions : []);
+      st.hoveredIds = hoverSet(st.frozen.regions, hit);
       if (config.cursor && st.shapes.length) {
         const want = hit || st.drag ? 'pointer' : 'default';
         if (st.cursor !== want) { st.cursor = want; this.cursor(want); }

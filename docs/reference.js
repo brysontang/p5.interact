@@ -9,7 +9,7 @@ const REFERENCE = {
     summary: 'Is the mouse over the shapes that follow?',
     description: [
       'Returns <code>true</code> when the mouse was over any shape drawn after this call, in this scope, on the previous frame. The question applies until the closing <code>pop()</code>, the same way <code>describeElement()</code> scopes itself. Questions asked back to back, like <code>hovered()</code> followed by <code>clicked()</code>, share the shapes that follow; a question asked after a shape has been drawn starts a new group.',
-      'Nested scopes bubble: a hover on a child is a hover on its parent, like <code>:hover</code> in CSS. Called at top level, outside any <code>push()</code>, it means "over anything drawn after this".',
+      'Nothing bubbles. When scopes nest, the innermost scope that asked <code>hovered()</code> is the one that answers <code>true</code>; its parents answer <code>false</code>. To make a group light up together, ask once at the group and let the children inherit it. Called at top level, outside any <code>push()</code>, it means "over anything drawn after this".',
       'The answer is one frame behind the draw, like every immediate-mode UI. While a scope is being dragged it reports <code>true</code>, because what you hold is under the mouse by definition.',
     ],
     returns: '<code>Boolean</code>',
@@ -72,7 +72,7 @@ function draw() {
 }`,
       },
       {
-        caption: 'Bubbling. Hovering a dot also hovers the panel that contains it.',
+        caption: 'Nothing bubbles. Left: the panel asks once and its dots inherit, so they light together. Right: each dot asks for itself, so only the dot lights and the panel stays dark.',
         code: `
 function setup() {
   createCanvas(320, 220);
@@ -82,13 +82,23 @@ function draw() {
   background(30);
   noStroke();
 
+  // Ask once: the dots never ask, so they belong to the panel's question
   push();
-  fill(hovered() ? 70 : 45);       // the panel: true over any dot, too
-  rect(30, 30, 260, 160, 14);
-  for (let i = 0; i < 4; i++) {
+  const together = hovered();
+  fill(together ? 70 : 45);
+  rect(15, 30, 140, 160, 14);
+  fill(together ? 'gold' : 'steelblue');
+  for (let i = 0; i < 3; i++) circle(85, 70 + i * 50, 34);
+  pop();
+
+  // Ask in each dot: the innermost question wins, the panel answers false
+  push();
+  fill(hovered() ? 70 : 45);
+  rect(165, 30, 140, 160, 14);
+  for (let i = 0; i < 3; i++) {
     push();
     fill(hovered() ? 'gold' : 'steelblue');
-    circle(70 + i * 60, 110, 40);
+    circle(235, 70 + i * 50, 34);
     pop();
   }
   pop();
@@ -104,7 +114,7 @@ function draw() {
     summary: 'Were the shapes that follow clicked?',
     description: [
       'Returns <code>true</code> for exactly one frame after a click on the shapes drawn after this call, in this scope. With a function, it also calls that function at the moment of the click, as <code>fn(event, hit)</code>.',
-      'Clicks do not bubble. When scopes nest, the click goes to the innermost scope that asked <code>clicked()</code> and stops there: a button inside a card does not also click the card. If the inner scope asked only <code>hovered()</code>, the click passes to the nearest enclosing scope that asked <code>clicked()</code>. Hover is different: hovering a child hovers its parents too.',
+      'Nothing bubbles. When scopes nest, the click goes to the innermost scope that asked <code>clicked()</code> and stops there: a button inside a card does not also click the card. If the inner scope asked only <code>hovered()</code>, the click passes to the nearest enclosing scope that asked <code>clicked()</code>.',
       'A press that travels more than <code>interact.config.clickSlop</code> pixels before release is a drag, not a click, so dragging and clicking never fight.',
     ],
     params: [

@@ -63,18 +63,18 @@ the names might still move.
 ## The questions
 
 **`hovered()`** returns true when the mouse was over any shape in this scope last
-frame. Nested scopes bubble: a hover on a child is a hover on the parent, like `:hover`
-in CSS. At top level, outside any `push()`, it means "over anything drawn after this."
+frame. At top level, outside any `push()`, it means "over anything drawn after this."
 
 **`clicked(fn?)`** returns true for one frame after a click on the shapes in scope.
 With a function, it also calls it at the moment of the click, as `fn(event, hit)`. A
 press that travels more than a few pixels is a drag, not a click.
 
-**Hover bubbles, actions don't.** Hovering a child scope hovers its parents too, like
-`:hover` in CSS. A click, a drag, or a drop goes to the innermost scope that asked for
-it and stops there, so a button inside a card does not also click the card. If a child
-asked only `hovered()`, the click passes to the nearest enclosing scope that asked
-`clicked()`. When you really want both, call the parent's function from the child.
+**Nothing bubbles.** Every question is answered for the innermost scope that asked it.
+A button inside a card does not also click or hover the card. If the inner scope asked
+only `hovered()`, a click passes to the nearest enclosing scope that asked `clicked()`.
+To make a group respond together, ask once at the group: children that never ask
+inherit the answer. To make them respond separately, ask inside each child. When you
+want both, carry the child's answer in a variable, the way you would for anything else.
 
 **`dragged()`** returns `{ x, y }` while the shapes in scope are being dragged, in the
 coordinates of the frame where you call it, or `null`. Call it before your `translate`
