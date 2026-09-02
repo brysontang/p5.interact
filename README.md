@@ -2,6 +2,8 @@
 
 Interaction for p5 without ceremony.
 
+**[Reference](https://brysontang.github.io/p5.interact/docs/)** · **[Examples](https://brysontang.github.io/p5.interact/examples/)**, with the code running live beside every page.
+
 A p5 2.x addon, one file, no build step. It adds four questions you can ask inside
 `draw()`:
 
@@ -38,11 +40,12 @@ p5 sketches keep it anyway.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
-<script src="./p5.interact.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/brysontang/p5.interact@v0.1.0/p5.interact.js"></script>
 <script src="./sketch.js"></script>
 ```
 
-Works in WEBGL and 2D, global and instance mode. MIT. Version 0.1: the ideas are settled,
+Or download [`p5.interact.js`](https://github.com/brysontang/p5.interact/blob/main/p5.interact.js)
+and load it from your own folder. Works in WEBGL and 2D, global and instance mode. MIT. Version 0.1: the ideas are settled,
 the names might still move.
 
 ## The questions
