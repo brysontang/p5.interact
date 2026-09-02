@@ -103,7 +103,7 @@ function renderIndex() {
         <p class="summary">Interaction for p5 without ceremony.</p>
         <p>Four questions you can ask inside <code>draw()</code>, each applying to the shapes drawn after it until the end of the enclosing <code>push()</code> / <code>pop()</code>, the way <code>describeElement()</code> scopes itself. Questions asked back to back share the shapes that follow. No ids, no handles, no registration. State lives in your variables.</p>
         <pre class="sig">${esc(`<script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.0/p5.interact.js"></script>`)}</pre>
+<script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.1/p5.interact.js"></script>`)}</pre>
         <p><a href="https://github.com/brysontang/p5.interact">github.com/brysontang/p5.interact</a> · <a href="https://www.npmjs.com/package/p5.interact">npm</a> · MIT</p>
         <ul class="index-list">
           ${Object.entries(REFERENCE).map(([n, r]) => `<li><a href="reference/${n}.html">${esc(r.signature)}</a><span>${r.summary}</span></li>`).join('')}

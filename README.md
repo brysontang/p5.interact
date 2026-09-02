@@ -41,7 +41,7 @@ p5 sketches keep it anyway.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.0/p5.interact.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.1/p5.interact.js"></script>
 <script src="./sketch.js"></script>
 ```
 
