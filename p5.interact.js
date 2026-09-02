@@ -438,11 +438,23 @@
 
     // -- scopes
     /** push(key): the scope is identified by key across frames instead of by draw order. */
-    fn.push = function (key) {
+    const pushImpl = function (key) {
       const out = orig.push.call(this);
       const st = state(this);
       st.scopes.push({ region: null, key: key === undefined ? null : keyId(st, key), n: 0, mute: false });
       return out;
+    };
+    fn.push = pushImpl;
+
+    // p5's friendly error system wraps every prototype method with an argument validator
+    // when the first sketch is created, and push() is documented as taking no arguments.
+    // Rebind our push on the instance (and on window in global mode) after that wrapping,
+    // so push(key) reaches us without a complaint.
+    lifecycles.presetup = function () {
+      this.push = pushImpl;
+      if (this._isGlobal) {
+        Object.defineProperty(window, 'push', { configurable: true, enumerable: true, value: pushImpl.bind(this) });
+      }
     };
     fn.pop = function (...a) {
       const out = orig.pop.apply(this, a);
