@@ -103,7 +103,8 @@ function draw() {
     signature: 'clicked([fn])',
     summary: 'Were the shapes that follow clicked?',
     description: [
-      'Returns <code>true</code> for exactly one frame after a click on the shapes drawn after this call, in this scope. With a function, it also calls that function at the moment of the click, as <code>fn(event, hit)</code>, innermost scope first.',
+      'Returns <code>true</code> for exactly one frame after a click on the shapes drawn after this call, in this scope. With a function, it also calls that function at the moment of the click, as <code>fn(event, hit)</code>.',
+      'Clicks do not bubble. When scopes nest, the click goes to the innermost scope that asked <code>clicked()</code> and stops there: a button inside a card does not also click the card. If the inner scope asked only <code>hovered()</code>, the click passes to the nearest enclosing scope that asked <code>clicked()</code>. Hover is different: hovering a child hovers its parents too.',
       'A press that travels more than <code>interact.config.clickSlop</code> pixels before release is a drag, not a click, so dragging and clicking never fight.',
     ],
     params: [
@@ -227,7 +228,7 @@ function draw() {
     summary: 'Was something dragged and released on the shapes that follow?',
     description: [
       'Returns <code>{ x, y }</code> for one frame after a drag was released over the shapes drawn after this call, in the coordinates of the frame where you call it. Otherwise <code>null</code>.',
-      'What was dropped is whatever your sketch was holding: keep it in a variable when <code>dragged()</code> first returns a delta. The thing being dragged is skipped by picking, so the target under it is what gets asked.',
+      'What was dropped is whatever your sketch was holding: keep it in a variable when <code>dragged()</code> first returns a delta. The thing being dragged is skipped by picking, so the target under it is what gets asked. Like clicks, drops do not bubble: the innermost scope that asked <code>dropped()</code> receives it.',
       'Since <code>dropped()</code> fires in the middle of <code>draw()</code>, update your own drag state (what is held, where it came from) right there, so the rest of the frame draws the thing in its new place.',
     ],
     returns: '<code>{ x, y }</code> on the drop frame, else <code>null</code>.',

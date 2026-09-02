@@ -67,8 +67,14 @@ frame. Nested scopes bubble: a hover on a child is a hover on the parent, like `
 in CSS. At top level, outside any `push()`, it means "over anything drawn after this."
 
 **`clicked(fn?)`** returns true for one frame after a click on the shapes in scope.
-With a function, it also calls it at the moment of the click, innermost scope first,
-as `fn(event, hit)`. A press that travels more than a few pixels is a drag, not a click.
+With a function, it also calls it at the moment of the click, as `fn(event, hit)`. A
+press that travels more than a few pixels is a drag, not a click.
+
+**Hover bubbles, actions don't.** Hovering a child scope hovers its parents too, like
+`:hover` in CSS. A click, a drag, or a drop goes to the innermost scope that asked for
+it and stops there, so a button inside a card does not also click the card. If a child
+asked only `hovered()`, the click passes to the nearest enclosing scope that asked
+`clicked()`. When you really want both, call the parent's function from the child.
 
 **`dragged()`** returns `{ x, y }` while the shapes in scope are being dragged, in the
 coordinates of the frame where you call it, or `null`. Call it before your `translate`
