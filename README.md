@@ -40,12 +40,13 @@ p5 sketches keep it anyway.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/p5@2.3.1/lib/p5.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/brysontang/p5.interact@v0.1.0/p5.interact.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/p5.interact@0.1.0/p5.interact.js"></script>
 <script src="./sketch.js"></script>
 ```
 
-Or download [`p5.interact.js`](https://github.com/brysontang/p5.interact/blob/main/p5.interact.js)
-and load it from your own folder. Works in WEBGL and 2D, global and instance mode. MIT. Version 0.1: the ideas are settled,
+Or `npm install p5.interact`, or download [`p5.interact.js`](https://github.com/brysontang/p5.interact/blob/main/p5.interact.js)
+and load it from your own folder. It is a classic script that expects `p5` on `window`,
+like every p5 addon. Works in WEBGL and 2D, global and instance mode. MIT. Version 0.1: the ideas are settled,
 the names might still move.
 
 ## The questions
