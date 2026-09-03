@@ -83,7 +83,7 @@ function draw() {
   fill(together ? 70 : 45);
   rect(15, 30, 140, 160, 14);
   fill(together ? 'gold' : 'steelblue');
-  for (let i = 0; i < 3; i++) circle(85, 70 + i * 50, 34);
+  for (let i = 0; i < 3; i++) circle(85, 60 + i * 50, 34);
   pop();
 
   // Ask in each dot: each question after a shape is a new group, so only the dot lights
@@ -92,7 +92,7 @@ function draw() {
   rect(165, 30, 140, 160, 14);
   for (let i = 0; i < 3; i++) {
     fill(hovered() ? 'gold' : 'steelblue');
-    circle(235, 70 + i * 50, 34);
+    circle(235, 60 + i * 50, 34);
   }
   pop();
 }`,
