@@ -9,11 +9,14 @@ A p5 2.x addon, one file, no build step. It adds five questions you can ask insi
 
 ```js
 hovered()        // is the mouse over the shapes that follow?
-clicked(fn?)     // were they clicked? (and: call fn when they are)
+clicked()        // were they clicked? true for one frame
 dragged()        // are they being dragged? returns the delta in local coordinates
 dropped()        // was something dragged and released on them? returns the drop point
-scrolled(fn?)    // was the wheel scrolled over them? returns the delta
+scrolled()       // was the wheel scrolled over them? returns the delta
 ```
+
+Every one returns a value that is truthy when it applies, read inside `draw()` the way
+you read `mouseIsPressed` or `movedX`. There are no callbacks.
 
 Each applies to the shapes drawn *after* it, until the end of the enclosing `push()` /
 `pop()`. Questions asked back to back share the shapes that follow; a question asked
@@ -30,7 +33,7 @@ function draw() {
     if (d) { item.x += d.x; item.y += d.y; }
     translate(item.x, item.y);
     fill(hovered() ? 200 : 60);
-    clicked(() => select(item));
+    if (clicked()) select(item);
     rect(0, 0, 100, 40, 8);
     pop();
   }
@@ -79,8 +82,7 @@ the names might still move.
 **`hovered()`** returns true when the mouse was over any shape in this scope last
 frame. At top level, outside any `push()`, it means "over anything drawn after this."
 
-**`clicked(fn?)`** returns true for one frame after a click on the shapes in scope.
-With a function, it also calls it at the moment of the click, as `fn(event, hit)`. A
+**`clicked()`** returns true for one frame after a click on the shapes in scope. A
 press that travels more than a few pixels is a drag, not a click.
 
 **Nothing bubbles.** Every question is answered for the scope that was in force when
@@ -106,12 +108,10 @@ shapes in scope, in the coordinates of the frame where you call it, or `null`. W
 dropped is whatever your sketch was holding; keep it in a variable when `dragged()`
 first returns a delta. See `examples/02_Drag_Between_Boxes`.
 
-**`scrolled(fn?)`** returns `{ x, y }`, the wheel delta accumulated over the last frame
+**`scrolled()`** returns `{ x, y }`, the wheel delta accumulated over the last frame
 while the wheel was over the shapes in scope, or `null`. Positive `y` is down or away,
-p5's sign. With a function, it calls it once per wheel event as `fn(event, hit)` with
-`event.delta` set the way `mouseWheel()` sets it. A scope that asked owns the wheel over
-its shapes: the page doesn't scroll and `orbitControl()` doesn't zoom, like scrolling
-inside a scrollable element.
+p5's sign. A scope that asked owns the wheel over its shapes: the page doesn't scroll and
+`orbitControl()` doesn't zoom, like scrolling inside a scrollable element.
 
 **`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`** make the shapes that
 follow stop answering that one question, until `pop()` or it is asked again. `noFill()`

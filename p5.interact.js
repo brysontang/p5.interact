@@ -5,10 +5,13 @@
  * in global and instance mode. It adds five questions you can ask inside draw():
  *
  *     hovered()        is the mouse over the shapes that follow?
- *     clicked(fn?)     were they clicked? (and: call fn when they are)
+ *     clicked()        were they clicked? true for one frame
  *     dragged()        are they being dragged? returns the delta in local coordinates
  *     dropped()        was something dragged and released on them? returns the drop point
- *     scrolled(fn?)    was the wheel scrolled over them? returns the delta (and: call fn per event)
+ *     scrolled()       was the wheel scrolled over them? returns the delta
+ *
+ * Every question returns a value that is truthy when it applies, read inside draw() the
+ * way mouseIsPressed and movedX are. There are no callbacks.
  *     noInteract()     the shapes that follow are drawn but not in click space
  *     noHover() …      the same, for one question at a time, like noFill()
  *     localMouse()     the mouse in the current coordinate frame, { x, y }
@@ -20,7 +23,7 @@
  *
  *     push();
  *     fill(hovered() ? 200 : 60);
- *     clicked(() => select(agent));
+ *     if (clicked()) select(agent);
  *     rect(0, 0, 100, 40, 8);
  *     pop();
  *
@@ -335,7 +338,7 @@
         id = `o${st.groups}`;
       }
       st.groups++;
-      g = { id, fresh: true, clicks: [], scrolls: [] };
+      g = { id, fresh: true };
       states.setValue('interactGroup', g);
     }
     states.setValue(KEY[kind], g);
@@ -510,10 +513,10 @@
       return st.hoveredIds.has(g.id) || !!(st.drag && st.drag.id === g.id); // what you hold is under the mouse
     };
 
-    fn.clicked = function (handler) {
+    /** clicked(): true for one frame after a click on the shapes that follow. */
+    fn.clicked = function () {
       const st = state(this);
       const g = ask(this, 'click');
-      if (typeof handler === 'function') g.clicks.push(handler);
       return st.clickedIds.has(g.id);
     };
 
@@ -528,15 +531,13 @@
       return pt ? { x: pt[0], y: pt[1] } : { x: 0, y: 0 };
     };
 
-    /** scrolled(fn?): { x, y } wheel delta accumulated over the last frame while the wheel was over
-     *  the shapes that follow, else null. With a function, calls fn(event, hit) per wheel event, with
-     *  event.delta set the way p5's mouseWheel() does. A scope that asked owns the wheel over its
-     *  shapes: the page does not scroll and orbitControl() does not zoom, like scrolling inside a
-     *  scrollable element. */
-    fn.scrolled = function (handler) {
+    /** scrolled(): { x, y } wheel delta accumulated over the last frame while the wheel was over
+     *  the shapes that follow, else null. Positive y is down or away, p5's sign. A scope that asked
+     *  owns the wheel over its shapes: the page does not scroll and orbitControl() does not zoom,
+     *  like scrolling inside a scrollable element. */
+    fn.scrolled = function () {
       const st = state(this);
       const g = ask(this, 'scroll');
-      if (typeof handler === 'function') g.scrolls.push(handler);
       return st.scrolledIds.get(g.id) || null;
     };
 
@@ -729,10 +730,7 @@
         st.hover = hit;
         st.hoveredIds = hoverSet(hit);
         const g = hit && hit.shape.q.click;
-        if (g) {
-          st.nextClicked.add(g.id);
-          for (const h of g.clicks) h(e, hit);
-        }
+        if (g) st.nextClicked.add(g.id);
       }, opt);
       el.addEventListener('pointercancel', () => { st.down = null; st.drag = null; }, opt);
       el.addEventListener('wheel', (e) => {
@@ -743,10 +741,8 @@
         const acc = st.nextScrolled.get(g.id) || { x: 0, y: 0 };
         acc.x += e.deltaX; acc.y += e.deltaY;
         st.nextScrolled.set(g.id, acc);
-        e.delta = e.deltaY; // p5's mouseWheel() convention
         e.preventDefault();  // the scope that asked owns this scroll: no page scroll, no orbit zoom
         e.stopPropagation();
-        for (const h of g.scrolls) h(e, hit);
       }, this._removeSignal ? { signal: this._removeSignal, passive: false } : { passive: false });
     };
 
@@ -799,10 +795,10 @@
   root.interact = {
     config,
     hovered: () => inst().hovered(),
-    clicked: (fn) => inst().clicked(fn),
+    clicked: () => inst().clicked(),
     dragged: () => inst().dragged(),
     dropped: () => inst().dropped(),
-    scrolled: (fn) => inst().scrolled(fn),
+    scrolled: () => inst().scrolled(),
     dragging: () => inst().dragging(),
     noInteract: () => inst().noInteract(),
     noHover: () => inst().noHover(),

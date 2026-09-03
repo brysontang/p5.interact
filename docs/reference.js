@@ -15,7 +15,7 @@ const REFERENCE = {
     returns: '<code>Boolean</code>',
     examples: [
       {
-        caption: 'One question, asked once. Both shapes are drawn after it, so hovering either one lights both.',
+        caption: 'One question, asked once. Both shapes are drawn after it, so hovering either one lights both. Set the fill, then let the question override it, the way you would inside an if.',
         code: `
 function setup() {
   createCanvas(320, 220);
@@ -25,7 +25,8 @@ function draw() {
   background(30);
   noStroke();
 
-  fill(hovered() ? 'orange' : 'steelblue');
+  fill('steelblue');
+  if (hovered()) fill('orange');
   circle(100, 110, 100);
   rect(180, 60, 100, 100, 16);
 }`,
@@ -102,15 +103,12 @@ function draw() {
 
   clicked: {
     group: 'Questions',
-    signature: 'clicked([fn])',
+    signature: 'clicked()',
     summary: 'Were the shapes that follow clicked?',
     description: [
-      'Returns <code>true</code> for exactly one frame after a click on the shapes drawn after this call, in this scope. With a function, it also calls that function at the moment of the click, as <code>fn(event, hit)</code>.',
+      'Returns <code>true</code> for exactly one frame after a click on the shapes drawn after this call, in this scope. Read it inside <code>draw()</code> the way you read <code>mouseIsPressed</code>: <code>if (clicked()) count++</code>.',
       'Nothing bubbles. When scopes nest, the click goes to the innermost scope that asked <code>clicked()</code> and stops there: a button inside a card does not also click the card. If the inner scope asked only <code>hovered()</code>, the click passes to the nearest enclosing scope that asked <code>clicked()</code>.',
       'A press that travels more than <code>interact.config.clickSlop</code> pixels before release is a drag, not a click, so dragging and clicking never fight.',
-    ],
-    params: [
-      { name: 'fn', type: 'Function (optional)', desc: 'Called on click with the pointer event and the hit record <code>{ shape, u, v }</code>.' },
     ],
     returns: '<code>Boolean</code>, true for one frame after a click.',
     examples: [
@@ -133,7 +131,7 @@ function draw() {
 }`,
       },
       {
-        caption: 'A callback, when the click should do something rather than be something.',
+        caption: 'Counting clicks. One frame of true is enough to act on.',
         code: `
 let count = 0;
 
@@ -151,7 +149,7 @@ function draw() {
   text(count + ' clicks', 160, 190);   // drawn before the question: not part of it
 
   fill(hovered() ? 'orange' : 'steelblue');
-  clicked(() => count++);
+  if (clicked()) count++;
   circle(160, 100, 100);
 }`,
       },
@@ -287,15 +285,11 @@ function drawBall() {
 
   scrolled: {
     group: 'Questions',
-    signature: 'scrolled([fn])',
+    signature: 'scrolled()',
     summary: 'Was the wheel scrolled over the shapes that follow?',
     description: [
-      'Returns <code>{ x, y }</code>, the wheel delta accumulated over the last frame while the wheel was over the shapes drawn after this call, or <code>null</code>. Positive <code>y</code> is scrolling down or away from you, the same sign p5 uses.',
-      'With a function, it also calls that function once per wheel event, as <code>fn(event, hit)</code>, with <code>event.delta</code> set the way p5\'s <code>mouseWheel()</code> sets it.',
-      'A scope that asked owns the wheel over its shapes, in either form: the page does not scroll and <code>orbitControl()</code> does not zoom, the way scrolling inside a scrollable element never scrolls the page. Like every question, it is answered for the innermost scope that asked.',
-    ],
-    params: [
-      { name: 'fn', type: 'Function (optional)', desc: 'Called per wheel event with the event and the hit record.' },
+      'Returns <code>{ x, y }</code>, the wheel delta accumulated over the last frame while the wheel was over the shapes drawn after this call, or <code>null</code>. Positive <code>y</code> is scrolling down or away from you, the same sign p5 uses. Two wheel events in one frame add up, so the value is what <code>draw()</code> needs.',
+      'A scope that asked owns the wheel over its shapes: the page does not scroll and <code>orbitControl()</code> does not zoom, the way scrolling inside a scrollable element never scrolls the page. Like every question, it is answered for the innermost scope that asked.',
     ],
     returns: '<code>{ x, y }</code> for the last frame\'s scrolling, else <code>null</code>.',
     examples: [
@@ -315,7 +309,8 @@ function draw() {
   noStroke();
 
   push();
-  scrolled((e) => { angle += e.delta * 0.005; });
+  const s = scrolled();
+  if (s) angle += s.y * 0.005;
   fill(hovered() ? 70 : 50);
   circle(160, 100, 130);
   stroke('gold');
@@ -328,7 +323,7 @@ function draw() {
 }`,
       },
       {
-        caption: 'Polling. scrolled() returns the frame\'s delta, so a list can scroll only when the wheel is over it.',
+        caption: 'A list that scrolls only when the wheel is over it.',
         code: `
 let offset = 0;
 
@@ -500,7 +495,7 @@ function draw() {
   noStroke();
 
   fill(hovered() ? 'orange' : 'steelblue');
-  clicked(() => count++);
+  if (clicked()) count++;
   rect(60, 60, 200, 100, 20);
 
   noHover();                     // the label still clicks, but does not light the button
@@ -538,7 +533,7 @@ function draw() {
   noStroke();
 
   fill(hovered() ? 'orange' : 'steelblue');
-  clicked(() => count++);
+  if (clicked()) count++;
   rect(60, 40, 200, 140, 20);
 
   noClick();                     // the badge still highlights, but clicking it does nothing
