@@ -596,40 +596,44 @@ function draw() {
     ],
     examples: [
       {
-        caption: 'Drag the ball onto the zone, then onto the hole. The hole is drawn over the zone and stays in click space, but after noDrop() it refuses drops, so a drop there lands on nothing.',
+        caption: 'A box you can drop the coin into, except on its title bar. The bar is drawn over the box and stays in click space, but after noDrop() it refuses drops, so the coin slides home.',
         code: `
-let ball = { x: 50, y: 170 };
-let where = 'nowhere';
+let home = { x: 60, y: 170 };
+let coin = { x: 60, y: 170 };
+let lifted = false;
+let landed = false;
 
 function setup() {
   createCanvas(320, 220);
-  textAlign(CENTER, CENTER);
-  textSize(14);
 }
 
 function draw() {
   background(30);
   noStroke();
 
-  fill(200);
-  text('dropped on: ' + where, 160, 20);
-
-  if (dropped()) where = 'the zone';
+  // The box accepts drops anywhere in its body
+  const at = dropped();
+  if (at) { coin.x = at.x; coin.y = at.y; landed = true; }
   fill(45);
-  rect(40, 40, 240, 100, 12);
+  rect(120, 30, 180, 160, 12);
 
-  noDrop();                      // a hole in the zone: dropping here counts as nowhere
-  fill(hovered() ? 40 : 30);     // asking hovered() keeps it in click space, so it covers the zone
-  circle(160, 90, 50);
+  // ...except its title bar, drawn over it. hovered() keeps it in click space.
+  noDrop();
+  fill(hovered() ? 80 : 60);
+  rect(120, 30, 180, 34, 12);
 
+  // The coin
   const d = dragged();
-  if (d) {
-    where = 'nowhere';           // lifting the ball forgets the last drop
-    ball.x += d.x;
-    ball.y += d.y;
+  if (d) { coin.x += d.x; coin.y += d.y; lifted = true; }
+  fill(hovered() ? 'orange' : 'gold');
+  circle(coin.x, coin.y, 30);
+
+  // Released somewhere that took no drop: back home
+  if (lifted && !dragging()) {
+    if (!landed) coin = { ...home };
+    lifted = false;
+    landed = false;
   }
-  fill('gold');
-  circle(ball.x, ball.y, 30);
 }`,
       },
     ],
