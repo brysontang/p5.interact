@@ -1,66 +1,84 @@
-// The circles, in draw order
-let items = [];
+// Two rows of circles. The top row uses push(), the bottom row push(item).
+let rows = [
+  { label: 'push()', keyed: false, y: 130, items: [] },
+  { label: 'push(item)', keyed: true, y: 270, items: [] },
+];
 
-// Whether scopes are keyed by the item, or matched by order
-let keyed = false;
-
-// Whether a circle is being held, and when the last one was added during a drag
-let holding = false;
+// When a circle was last added to the row being dragged
 let lastAdded = 0;
 
 function setup() {
   // Create the canvas
   createCanvas(710, 400);
   noStroke();
-  textAlign(CENTER, CENTER);
+  textAlign(LEFT, CENTER);
   textSize(16);
 
-  for (let i = 0; i < 5; i++) {
-    addItem();
+  for (let row of rows) {
+    resetRow(row);
   }
 
   // Set screen reader accessible description
-  describe('A row of circles. While one is dragged, new circles appear at the front of the row.');
+  describe('Two rows of circles. Holding a circle adds circles to its row. In the top row the drag jumps to a neighbor; in the bottom row it does not.');
 }
 
-function addItem() {
-  // New circles go to the front, which shifts every scope after them
-  items.unshift({ x: 80 + items.length * 110, y: 160 });
+function resetRow(row) {
+  row.items = [];
+  for (let i = 0; i < 3; i++) {
+    addItem(row);
+  }
+}
+
+function addItem(row) {
+  // The new circle appears at the right end, but goes to the FRONT of the draw
+  // order, which shifts every circle after it by one place.
+  row.items.unshift({ x: 200 + row.items.length * 90, y: row.y });
 }
 
 function draw() {
   background(30);
 
-  // While a circle is held, add a circle every second
-  if (holding && millis() - lastAdded > 1000) {
-    addItem();
-    lastAdded = millis();
-  }
-  if (!holding) {
-    lastAdded = millis();
-  }
-
-  holding = false;
-  for (let it of items) {
-    // With a key, this scope is "it" whatever its position in the row
-    push(keyed ? it : undefined);
-    let d = dragged();
-    let hot = hovered();
-    if (d) {
-      it.x += d.x;
-      it.y += d.y;
-      holding = true;
-    }
-    fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
-    circle(it.x, it.y, 80);
-    pop();
-  }
-
+  // Labels, drawn before any question so they are never picked
   fill(200);
-  text(keyed ? 'push(item): keyed. Press any key to switch.' : 'push(): matched by order. Press any key to switch.', width / 2, 340);
-  text(items.length + ' circles', width / 2, 370);
-}
+  for (let row of rows) {
+    text(row.label, 40, row.y);
+  }
+  fill(150);
+  textSize(13);
+  text('Hold a circle. New circles join its row at the front of the draw order. Let go to reset.', 40, 370);
+  textSize(16);
 
-function keyPressed() {
-  keyed = !keyed;
+  let holding = null;
+
+  for (let row of rows) {
+    for (let it of row.items) {
+      // The only difference between the rows: with a key, this scope is "it"
+      // wherever it lands in the draw order. Without one, it is "the third push()".
+      push(row.keyed ? it : undefined);
+      let d = dragged();
+      let hot = hovered();
+      if (d) {
+        it.x += d.x;
+        it.y += d.y;
+        holding = row;
+      }
+      fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
+      circle(it.x, it.y, 70);
+      pop();
+    }
+  }
+
+  // While a circle is held, add one to its row every second, up to six
+  if (holding) {
+    if (millis() - lastAdded > 1000 && holding.items.length < 6) {
+      addItem(holding);
+      lastAdded = millis();
+    }
+  } else {
+    lastAdded = millis();
+    // Nothing held: any row that grew goes back to three
+    for (let row of rows) {
+      if (row.items.length > 3) resetRow(row);
+    }
+  }
 }
