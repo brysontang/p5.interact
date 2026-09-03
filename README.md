@@ -96,8 +96,9 @@ draws on every display refresh, unless your sketch called `frameRate()` itself. 
 
 ```js
 interact.config.frameRate = null;
-``` Version 0.1: the ideas are settled,
-the names might still move.
+```
+
+Version 0.1: the ideas are settled, the names might still move.
 
 ## The questions
 
