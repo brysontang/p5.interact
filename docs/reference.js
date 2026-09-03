@@ -229,20 +229,17 @@ function draw() {
     returns: '<code>{ x, y }</code> on the drop frame, else <code>null</code>.',
     examples: [
       {
-        caption: 'Drag the circle onto a square and let go. It returns to where it started, wearing the color of the square it was dropped on.',
+        caption: 'Drag the circle onto a square and let go. It takes the color of the square it was dropped on.',
         code: `
 const swatches = [
   { x: 60, y: 60, c: 'tomato' },
   { x: 160, y: 60, c: 'gold' },
   { x: 260, y: 60, c: 'mediumseagreen' },
 ];
-let home = { x: 160, y: 160 };
 let ball = { x: 160, y: 160, c: 'steelblue' };
-let lifted = false;
 
 function setup() {
   createCanvas(320, 220);
-  noStroke();
   rectMode(CENTER);
 }
 
@@ -250,17 +247,19 @@ function draw() {
   background(30);
 
   // Each square asks dropped(). Drop the circle on one and it takes that color.
+  noFill();
+  strokeWeight(3);
   for (const s of swatches) {
     if (dropped()) ball.c = s.c;
-    fill(s.c);
+    stroke(s.c);
     square(s.x, s.y, hovered() ? 66 : 60);
   }
 
-  // The circle: drag it anywhere. When released it goes home.
+  // The circle: drag it anywhere.
   noHover();                     // otherwise it would inherit the last square's hovered()
+  noStroke();
   const d = dragged();
-  if (d) { ball.x += d.x; ball.y += d.y; lifted = true; }
-  if (lifted && !dragging()) { ball.x = home.x; ball.y = home.y; lifted = false; }
+  if (d) { ball.x += d.x; ball.y += d.y; }
   fill(ball.c);
   circle(ball.x, ball.y, 50);
 }`,
