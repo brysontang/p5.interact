@@ -43,6 +43,29 @@ function draw() {
 No ids, no names, no handles, no registration. State lives in your variables, where
 p5 sketches keep it anyway.
 
+## Why
+
+p5 already has two ways to be interactive, and neither one touches the canvas.
+
+The global event functions, `mousePressed()` and `mouseDragged()`, know when the mouse
+did something and nothing about what you drew. So every sketch that wants a clickable
+shape writes `if (dist(mouseX, mouseY, x, y) < r)` by hand, which only works for circles,
+and gives up on anything rotated.
+
+The DOM layer, `createButton().mousePressed(fn)` and `draggable()`, works because it
+isn't canvas at all. Those are retained elements with handlers attached to the returned
+object, an idiom p5 otherwise avoids, which is why that corner of the reference reads
+like a different library.
+
+What neither does is treat interaction the way p5 treats everything else: as state you
+set before you draw. `fill()` doesn't attach a color to a returned shape; it colors what
+comes next. `hovered()` doesn't attach a handler to a returned shape; it applies to what
+comes next. Say it that way and the rest follows without being designed: `push()` and
+`pop()` scope it, `noHover()` is `noFill()`, a question asked after a shape starts a new
+group the way a second `fill()` starts a new color, and a question you skip leaves the
+previous one in force. It isn't a model on top of p5. It's p5's model, pointed at the
+mouse.
+
 `push()` and `pop()` are only there for what they always do in p5: the `translate` and
 the `fill`. The questions don't need them. A question asked after a shape has been
 drawn starts a new group, so this works exactly the way two `fill()` calls work, and
