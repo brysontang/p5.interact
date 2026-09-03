@@ -42,7 +42,9 @@ p5 sketches keep it anyway.
 
 `push()` and `pop()` are only there for what they always do in p5: the `translate` and
 the `fill`. The questions don't need them. A question asked after a shape has been
-drawn starts a new group, so this works exactly the way two `fill()` calls work:
+drawn starts a new group, so this works exactly the way two `fill()` calls work, and
+not by analogy: a question is stored on p5's own drawing-state object, next to
+`fillColor`, and p5's `push()` and `pop()` save and restore it like everything else there.
 
 ```js
 fill(hovered() ? 'red' : 'yellow');
@@ -81,7 +83,10 @@ frame. At top level, outside any `push()`, it means "over anything drawn after t
 With a function, it also calls it at the moment of the click, as `fn(event, hit)`. A
 press that travels more than a few pixels is a drag, not a click.
 
-**Nothing bubbles.** Every question is answered for the innermost scope that asked it.
+**Nothing bubbles.** Every question is answered for the scope that was in force when
+the shape was drawn, which is the innermost one that asked. Each question is its own
+piece of state, the way fill and stroke are separate: asking `clicked()` again after a
+shape does not reset a `hovered()` asked earlier.
 A button inside a card does not also click or hover the card. If the inner scope asked
 only `hovered()`, a click passes to the nearest enclosing scope that asked `clicked()`.
 To make a group respond together, ask once at the group: children that never ask

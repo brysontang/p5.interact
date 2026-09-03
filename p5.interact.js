@@ -23,16 +23,18 @@
  *     rect(0, 0, 100, 40, 8);
  *     pop();
  *
- * Nothing is named and nothing is registered. Scopes are matched frame to frame by
- * order, so the third push() this frame is the same thing as the third push() last
- * frame. When draw order changes while something is held, push(key) keys a scope by
- * the object it draws instead. State is one frame behind the draw, like every
- * immediate-mode UI. While a scope is being dragged its shapes are skipped by picking,
- * so whatever is underneath can answer hovered() and dropped().
+ * A question is drawing state. It lives on p5's own `states` object next to fillColor,
+ * so p5's push() and pop() scope it and a later question replaces it, exactly like a
+ * later fill(). Nothing is named and nothing is registered. Groups are matched frame to
+ * frame by order, so the third group this frame is the same thing as the third group
+ * last frame; push(key) names a scope's groups by the object it draws instead. While a
+ * group is being dragged its shapes are skipped by picking, so whatever is underneath
+ * can answer hovered() and dropped().
  *
- * Nothing bubbles. Every question is answered for the innermost scope that asked it:
- * a button inside a card does not also click or hover the card. To make a group
- * respond together, ask once at the group and let its children inherit the answer.
+ * Nothing bubbles. Every question is answered for the group that was in force when the
+ * shape was drawn, which is the innermost scope that asked. A button inside a card does
+ * not also click or hover the card. To make a group respond together, ask once at the
+ * group and let its children inherit the answer.
  *
  * Picking is geometric. Each primitive records its arguments and the current matrix.
  * At frame end the mouse is unprojected into each shape's own space and tested
@@ -259,6 +261,21 @@
   }
 
   // ---------------------------------------------------------------- state
+  //
+  // A question is drawing state, stored where p5 stores drawing state: on the renderer's
+  // `states` object, next to fillColor and rectMode. p5's own push() and pop() save and
+  // restore it, so scoping costs this library nothing. Each question is its own key, the
+  // way fill and stroke are separate: asking clicked() again does not reset hovered().
+  //
+  //   interactGroup   the group the most recent question created (or reused, if no shape
+  //                   has been drawn since it was created)
+  //   interactHover   the group that currently answers hovered()   } set by each question,
+  //   interactClick   ... clicked()                                  } read by each shape as
+  //   interactDrag    ... dragged()                                  } it is drawn, exactly
+  //   interactDrop    ... dropped()                                  } like fillColor
+  //   interactScroll  ... scrolled()
+  //   interactMute    noInteract(): shapes are drawn but not recorded, until pop() or a question
+  //   interactKey     push(key): groups created in this scope are named by the key
 
   const config = {
     clickSlop: 5,       // px of pointer travel before a press is a drag, not a click
@@ -267,13 +284,16 @@
     frameRate: Infinity, // applied after setup() unless the sketch called frameRate() itself; null = leave p5 alone
   };
 
+  const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll'];
+  const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll' };
+  const STATE_KEYS = ['interactGroup', 'interactMute', 'interactKey', ...Object.values(KEY)];
+
   let current = null;
 
   function state(p) {
     return p._interact || (p._interact = {
-      scopes: [{ region: null, key: null, n: 0, mute: false }],
-      regions: new Map(), shapes: [],
-      frozen: { regions: new Map(), shapes: [] },
+      groups: 0, keyCounts: new Map(), shapes: [],
+      frozen: { shapes: [] },
       hoveredIds: new Set(), clickedIds: new Set(), nextClicked: new Set(),
       droppedIds: new Map(), nextDropped: new Map(),
       scrolledIds: new Map(), nextScrolled: new Map(),
@@ -283,6 +303,8 @@
     });
   }
 
+  const S = (p) => p._renderer.states;
+
   // Identity for push(key): objects by reference, primitives by value.
   function keyId(st, key) {
     if ((typeof key === 'object' && key !== null) || typeof key === 'function') {
@@ -291,6 +313,31 @@
       return 'k' + id;
     }
     return 'v' + String(key);
+  }
+
+  // A question: reuse the current group if nothing has been drawn since it was created,
+  // otherwise start a new one (a question after a shape starts a new group). Then point
+  // this question's state key at it, the way fill() points fillColor at a color.
+  function ask(p, kind) {
+    const st = state(p), states = S(p);
+    states.setValue('interactMute', false);
+    let g = states.interactGroup;
+    if (!g || !g.fresh) {
+      const key = states.interactKey;
+      let id;
+      if (key != null) {
+        const n = st.keyCounts.get(key) || 0;
+        st.keyCounts.set(key, n + 1);
+        id = `${key}.${n}`;
+      } else {
+        id = `o${st.groups}`;
+      }
+      st.groups++;
+      g = { id, fresh: true, clicks: [], scrolls: [] };
+      states.setValue('interactGroup', g);
+    }
+    states.setValue(KEY[kind], g);
+    return g;
   }
 
   function isGL(p) {
@@ -303,56 +350,33 @@
     return mul4(mul4(st.uPMatrix.mat4, st.uViewMatrix.mat4), st.uModelMatrix.mat4);
   }
 
-  // The region an interaction call refers to: the current one in this scope if no shape
-  // has been drawn since it opened (so hovered() and clicked() stack), else a new one.
-  function region(p) {
-    const st = state(p);
-    const scope = st.scopes[st.scopes.length - 1];
-    scope.mute = false;
-    let r = scope.region;
-    if (!r || !r.fresh) {
-      const id = scope.key != null ? `${scope.key}.${scope.n++}` : `o${st.regions.size}`;
-      r = { id, fresh: true, hover: false, clicks: [], click: false, drag: false, drop: false, scroll: false, scrolls: [] };
-      st.regions.set(id, r);
-      scope.region = r;
-    }
-    return r;
-  }
-
-  function listening(st) {
-    if (st.scopes[st.scopes.length - 1].mute) return false;
-    for (const sc of st.scopes) if (sc.region) return true;
+  // Is any question in force here? Cheap: read five keys. Shapes drawn with none are free.
+  function listening(p) {
+    const states = S(p);
+    if (states.interactMute) return false;
+    for (const k of QUESTIONS) if (states[KEY[k]]) return true;
     return false;
   }
 
   function record(p, shape) {
-    const st = state(p);
-    if (st.scopes[st.scopes.length - 1].mute) return;
-    const regs = [];
-    for (const sc of st.scopes) {
-      if (sc.region) { regs.push(sc.region.id); sc.region.fresh = false; }
+    const st = state(p), states = S(p);
+    const q = {};
+    let any = false;
+    for (const k of QUESTIONS) {
+      const g = states[KEY[k]] || null;
+      q[k] = g;
+      if (g) { any = true; g.fresh = false; }
     }
-    if (!regs.length) return;
-    shape.regions = regs; // outermost first
+    if (!any) return;
+    shape.q = q; // the group answering each question for this shape, as of when it was drawn
     shape.order = st.shapes.length;
     if (isGL(p)) shape.mvp = currentMVP(p);
     else shape.m2d = p._renderer.drawingContext.getTransform();
     st.shapes.push(shape);
   }
 
-  // Of the scopes a shape was drawn in, the innermost one that asked a given question.
-  // Nothing bubbles: that scope alone gets the answer.
-  function innermost(regions, regs, flag) {
-    for (let i = regs.length - 1; i >= 0; i--) {
-      const r = regions.get(regs[i]);
-      if (r && r[flag]) return r;
-    }
-    return null;
-  }
-
-  function hoverSet(regions, hit) {
-    const r = hit ? innermost(regions, hit.shape.regions, 'hover') : null;
-    return new Set(r ? [r.id] : []);
+  function hoverSet(hit) {
+    return new Set(hit && hit.shape.q.hover ? [hit.shape.q.hover.id] : []);
   }
 
   function resolve(p, st, mx, my, skipId) {
@@ -360,13 +384,14 @@
     const shapes = st.frozen.shapes;
     if (!shapes.length) return null;
     if (skipId === undefined) skipId = st.drag ? st.drag.id : null;
+    const skip = (s) => skipId && s.q.drag && s.q.drag.id === skipId; // what you hold is not in click space
     let best = null, score = Infinity;
     if (isGL(p)) {
       const nx = (2 * mx) / p.width - 1, ny = 1 - (2 * my) / p.height;
       if (nx < -1 || nx > 1 || ny < -1 || ny > 1) return null;
       const pxNdc = 2 / p.width;
       for (const s of shapes) {
-        if (skipId && s.regions.includes(skipId)) continue; // what you hold is not in click space
+        if (skip(s)) continue;
         const h = hitGL(s, nx, ny, pxNdc);
         if (!h) continue;
         // nearest wins; at equal depth the later-drawn wins, like paint (p5 draws with LEQUAL)
@@ -379,7 +404,7 @@
       const pd = p.pixelDensity();
       const pt = new DOMPoint(mx * pd, my * pd);
       for (const s of shapes) {
-        if (skipId && s.regions.includes(skipId)) continue;
+        if (skip(s)) continue;
         const inv = s.inv || (s.inv = s.m2d.inverse());
         const q = inv.transformPoint(pt);
         const upp = pd * Math.hypot(inv.a, inv.b); // one CSS pixel, in this shape's units
@@ -442,7 +467,7 @@
     if (fn.__p5interact) return; // loaded twice: never wrap the primitives a second time
     fn.__p5interact = true;
     const orig = {};
-    for (const name of ['push', 'pop', 'rect', 'square', 'ellipse', 'circle', 'triangle', 'quad', 'line',
+    for (const name of ['push', 'rect', 'square', 'ellipse', 'circle', 'triangle', 'quad', 'line',
       'text', 'image', 'plane', 'box', 'sphere', 'beginShape', 'vertex', 'endShape', 'frameRate']) {
       orig[name] = fn[name];
     }
@@ -457,12 +482,11 @@
       return orig.frameRate.call(this, fps);
     };
 
-    // -- scopes
-    /** push(key): the scope is identified by key across frames instead of by draw order. */
+    // -- scopes. p5's push/pop already save and restore our state keys; push(key) only
+    //    adds the key. pop() needs no wrapper at all.
     const pushImpl = function (key) {
       const out = orig.push.call(this);
-      const st = state(this);
-      st.scopes.push({ region: null, key: key === undefined ? null : keyId(st, key), n: 0, mute: false });
+      if (key !== undefined) S(this).setValue('interactKey', keyId(state(this), key));
       return out;
     };
     fn.push = pushImpl;
@@ -477,36 +501,27 @@
         Object.defineProperty(window, 'push', { configurable: true, enumerable: true, value: pushImpl.bind(this) });
       }
     };
-    fn.pop = function (...a) {
-      const out = orig.pop.apply(this, a);
-      const st = state(this);
-      if (st.scopes.length > 1) st.scopes.pop();
-      return out;
-    };
 
     // -- questions
     fn.hovered = function () {
       const st = state(this);
-      const r = region(this);
-      r.hover = true;
-      return st.hoveredIds.has(r.id) || !!(st.drag && st.drag.id === r.id); // what you hold is under the mouse
+      const g = ask(this, 'hover');
+      return st.hoveredIds.has(g.id) || !!(st.drag && st.drag.id === g.id); // what you hold is under the mouse
     };
 
     fn.clicked = function (handler) {
       const st = state(this);
-      const r = region(this);
-      r.click = true;
-      if (typeof handler === 'function') r.clicks.push(handler);
-      return st.clickedIds.has(r.id);
+      const g = ask(this, 'click');
+      if (typeof handler === 'function') g.clicks.push(handler);
+      return st.clickedIds.has(g.id);
     };
 
     /** dropped(): { x, y } in the current frame's coordinates for one frame after a drag
      *  was released over the shapes that follow; else null. */
     fn.dropped = function () {
       const st = state(this);
-      const r = region(this);
-      r.drop = true;
-      const at = st.droppedIds.get(r.id);
+      const g = ask(this, 'drop');
+      const at = st.droppedIds.get(g.id);
       if (!at) return null;
       const pt = planePoint(this, at.mx, at.my);
       return pt ? { x: pt[0], y: pt[1] } : { x: 0, y: 0 };
@@ -518,24 +533,22 @@
      *  (no page scroll, no orbitControl zoom). */
     fn.scrolled = function (handler) {
       const st = state(this);
-      const r = region(this);
-      r.scroll = true;
-      if (typeof handler === 'function') r.scrolls.push(handler);
-      return st.scrolledIds.get(r.id) || null;
+      const g = ask(this, 'scroll');
+      if (typeof handler === 'function') g.scrolls.push(handler);
+      return st.scrolledIds.get(g.id) || null;
     };
 
     /** noInteract(): the shapes that follow in this scope are drawn but not picked,
      *  until pop() or the next question. Like noFill() for click space. */
     fn.noInteract = function () {
-      state(this).scopes[state(this).scopes.length - 1].mute = true;
+      S(this).setValue('interactMute', true);
     };
 
     fn.dragged = function () {
       const st = state(this);
-      const r = region(this);
-      r.drag = true;
+      const g = ask(this, 'drag');
       const d = st.drag;
-      if (!d || d.id !== r.id) return null;
+      if (!d || d.id !== g.id) return null;
       const mx = this.mouseX, my = this.mouseY;
       if (!d.active) {
         if (Math.hypot(mx - d.startX, my - d.startY) <= config.clickSlop) return null;
@@ -563,30 +576,30 @@
       return state(this).hover;
     };
 
-    // -- primitives: draw as usual, then remember the geometry if anyone is listening
+    // -- primitives: draw as usual, then remember the geometry if a question is in force
     fn.rect = function (...a) {
       const out = orig.rect.apply(this, a);
-      if (listening(state(this))) record(this, rectShape(this, a));
+      if (listening(this)) record(this, rectShape(this, a));
       return out;
     };
     fn.square = function (x, y, s, ...r) {
       const out = orig.square.call(this, x, y, s, ...r);
-      if (listening(state(this))) record(this, rectShape(this, [x, y, s, s, ...r]));
+      if (listening(this)) record(this, rectShape(this, [x, y, s, s, ...r]));
       return out;
     };
     fn.ellipse = function (x, y, w, h, ...rest) {
       const out = orig.ellipse.call(this, x, y, w, h, ...rest);
-      if (listening(state(this))) record(this, ellipseShape(this, x, y, w, h));
+      if (listening(this)) record(this, ellipseShape(this, x, y, w, h));
       return out;
     };
     fn.circle = function (x, y, d) {
       const out = orig.circle.call(this, x, y, d);
-      if (listening(state(this))) record(this, ellipseShape(this, x, y, d, d));
+      if (listening(this)) record(this, ellipseShape(this, x, y, d, d));
       return out;
     };
     fn.triangle = function (...a) {
       const out = orig.triangle.apply(this, a);
-      if (listening(state(this))) {
+      if (listening(this)) {
         const pts = a.length >= 9
           ? [[a[0], a[1], a[2]], [a[3], a[4], a[5]], [a[6], a[7], a[8]]]
           : [[a[0], a[1], 0], [a[2], a[3], 0], [a[4], a[5], 0]];
@@ -596,7 +609,7 @@
     };
     fn.quad = function (...a) {
       const out = orig.quad.apply(this, a);
-      if (listening(state(this))) {
+      if (listening(this)) {
         const pts = a.length >= 12
           ? [[a[0], a[1], a[2]], [a[3], a[4], a[5]], [a[6], a[7], a[8]], [a[9], a[10], a[11]]]
           : [[a[0], a[1], 0], [a[2], a[3], 0], [a[4], a[5], 0], [a[6], a[7], 0]];
@@ -606,7 +619,7 @@
     };
     fn.line = function (...a) {
       const out = orig.line.apply(this, a);
-      if (listening(state(this))) {
+      if (listening(this)) {
         const [p, q] = a.length >= 6 ? [[a[0], a[1], a[2]], [a[3], a[4], a[5]]] : [[a[0], a[1], 0], [a[2], a[3], 0]];
         record(this, { kind: 'line', a: p, b: q, sw: strokeHalf(this) });
       }
@@ -614,7 +627,7 @@
     };
     fn.text = function (str, x, y, w, h) {
       const out = orig.text.call(this, str, x, y, w, h);
-      if (listening(state(this))) {
+      if (listening(this)) {
         let b = null;
         try { b = this.fontBounds(String(str), x, y, w, h); } catch (e) { /* no font metrics yet */ }
         if (b) record(this, { kind: 'rect', x: b.x, y: b.y, w: b.w, h: b.h, r: [0, 0, 0, 0] });
@@ -623,7 +636,7 @@
     };
     fn.image = function (img, x, y, w, h, ...rest) {
       const out = orig.image.call(this, img, x, y, w, h, ...rest);
-      if (listening(state(this)) && img) {
+      if (listening(this) && img) {
         const b = modeRect(this._renderer.states.imageMode, x, y, w === undefined ? img.width : w, h === undefined ? img.height : h);
         record(this, { kind: 'rect', x: b.x, y: b.y, w: b.w, h: b.h, r: [0, 0, 0, 0] });
       }
@@ -631,22 +644,22 @@
     };
     fn.plane = function (w = 50, h = w, ...rest) {
       const out = orig.plane.call(this, w, h, ...rest);
-      if (listening(state(this))) record(this, { kind: 'rect', x: -w / 2, y: -h / 2, w, h, r: [0, 0, 0, 0] });
+      if (listening(this)) record(this, { kind: 'rect', x: -w / 2, y: -h / 2, w, h, r: [0, 0, 0, 0] });
       return out;
     };
     fn.box = function (w = 50, h = w, d = h, ...rest) {
       const out = orig.box.call(this, w, h, d, ...rest);
-      if (listening(state(this))) record(this, { kind: 'box', w, h, d });
+      if (listening(this)) record(this, { kind: 'box', w, h, d });
       return out;
     };
     fn.sphere = function (r = 50, ...rest) {
       const out = orig.sphere.call(this, r, ...rest);
-      if (listening(state(this))) record(this, { kind: 'sphere', r });
+      if (listening(this)) record(this, { kind: 'sphere', r });
       return out;
     };
     fn.beginShape = function (...a) {
       const out = orig.beginShape.apply(this, a);
-      state(this).verts = listening(state(this)) ? [] : null;
+      state(this).verts = listening(this) ? [] : null;
       return out;
     };
     fn.vertex = function (...a) {
@@ -684,8 +697,8 @@
         st.down = { x: e.clientX, y: e.clientY, button: e.button };
         const hit = resolve(this, st, mx, my);
         st.drag = null;
-        const target = hit && e.button === 0 ? innermost(st.frozen.regions, hit.shape.regions, 'drag') : null;
-        if (target) st.drag = { id: target.id, startX: mx, startY: my, lastX: mx, lastY: my, active: false, frame: -1, delta: null };
+        const g = hit && e.button === 0 ? hit.shape.q.drag : null;
+        if (g) st.drag = { id: g.id, startX: mx, startY: my, lastX: mx, lastY: my, active: false, frame: -1, delta: null };
       }, opt);
       el.addEventListener('pointerup', (e) => {
         const d = st.down;
@@ -695,36 +708,35 @@
         if (!d || d.button !== e.button) return;
         const [mx, my] = canvasXY(e);
         if (drag && drag.active) {
-          // a drop: the innermost scope under the release point that asked dropped(),
-          // not counting what was held. Actions do not bubble; hover does.
+          // a drop: whatever is under the release point, not counting what was held
           const hit = resolve(this, st, mx, my, drag.id);
           st.hover = hit;
-          st.hoveredIds = hoverSet(st.frozen.regions, hit);
-          const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'drop');
-          if (target) st.nextDropped.set(target.id, { mx, my });
+          st.hoveredIds = hoverSet(hit);
+          const g = hit && hit.shape.q.drop;
+          if (g) st.nextDropped.set(g.id, { mx, my });
           return;
         }
         if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > config.clickSlop) return;
         const hit = resolve(this, st, mx, my, null);
         st.hover = hit;
-        st.hoveredIds = hoverSet(st.frozen.regions, hit);
-        const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'click');
-        if (target) {
-          st.nextClicked.add(target.id);
-          for (const h of target.clicks) h(e, hit);
+        st.hoveredIds = hoverSet(hit);
+        const g = hit && hit.shape.q.click;
+        if (g) {
+          st.nextClicked.add(g.id);
+          for (const h of g.clicks) h(e, hit);
         }
       }, opt);
       el.addEventListener('pointercancel', () => { st.down = null; st.drag = null; }, opt);
       el.addEventListener('wheel', (e) => {
         const [mx, my] = canvasXY(e);
         const hit = resolve(this, st, mx, my);
-        const target = hit && innermost(st.frozen.regions, hit.shape.regions, 'scroll');
-        if (!target) return;
-        const acc = st.nextScrolled.get(target.id) || { x: 0, y: 0 };
+        const g = hit && hit.shape.q.scroll;
+        if (!g) return;
+        const acc = st.nextScrolled.get(g.id) || { x: 0, y: 0 };
         acc.x += e.deltaX; acc.y += e.deltaY;
-        st.nextScrolled.set(target.id, acc);
+        st.nextScrolled.set(g.id, acc);
         e.delta = e.deltaY; // p5's mouseWheel() convention
-        for (const h of target.scrolls) {
+        for (const h of g.scrolls) {
           if (h(e, hit) === false) { e.preventDefault(); e.stopPropagation(); }
         }
       }, this._removeSignal ? { signal: this._removeSignal, passive: false } : { passive: false });
@@ -732,8 +744,11 @@
 
     lifecycles.predraw = function () {
       const st = state(this);
-      st.scopes = [{ region: null, key: null, n: 0, mute: false }];
-      st.regions = new Map();
+      // Questions are per frame, unlike fill: clear our keys before draw() runs.
+      const states = S(this);
+      for (const k of STATE_KEYS) states[k] = null;
+      st.groups = 0;
+      st.keyCounts = new Map();
       st.shapes = [];
       st.verts = null;
       st.clickedIds = st.nextClicked;
@@ -746,10 +761,10 @@
 
     lifecycles.postdraw = function () {
       const st = state(this);
-      st.frozen = { regions: st.regions, shapes: st.shapes };
+      st.frozen = { shapes: st.shapes };
       const hit = resolve(this, st, this.mouseX, this.mouseY);
       st.hover = hit;
-      st.hoveredIds = hoverSet(st.frozen.regions, hit);
+      st.hoveredIds = hoverSet(hit);
       if (config.cursor && st.shapes.length) {
         const want = hit || st.drag ? 'pointer' : 'default';
         if (st.cursor !== want) { st.cursor = want; this.cursor(want); }
