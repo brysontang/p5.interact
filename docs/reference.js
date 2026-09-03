@@ -596,7 +596,7 @@ function draw() {
     ],
     examples: [
       {
-        caption: 'The shapes after noDrop() still take part in everything except drop.',
+        caption: 'Drag the ball onto the zone, then onto the hole. The hole is drawn over the zone and stays in click space, but after noDrop() it refuses drops, so a drop there lands on nothing.',
         code: `
 let ball = { x: 50, y: 170 };
 let where = 'nowhere';
@@ -612,7 +612,7 @@ function draw() {
   noStroke();
 
   fill(200);
-  text('dropped: ' + where, 160, 20);
+  text('dropped on: ' + where, 160, 20);
 
   if (dropped()) where = 'the zone';
   fill(45);
@@ -623,10 +623,13 @@ function draw() {
   circle(160, 90, 50);
 
   const d = dragged();
-  if (d) { ball.x += d.x; ball.y += d.y; }
+  if (d) {
+    where = 'nowhere';           // lifting the ball forgets the last drop
+    ball.x += d.x;
+    ball.y += d.y;
+  }
   fill('gold');
   circle(ball.x, ball.y, 30);
-  if (!dragging() && !dropped()) { /* stays put */ }
 }`,
       },
     ],
