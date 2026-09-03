@@ -530,8 +530,9 @@
 
     /** scrolled(fn?): { x, y } wheel delta accumulated over the last frame while the wheel was over
      *  the shapes that follow, else null. With a function, calls fn(event, hit) per wheel event, with
-     *  event.delta set the way p5's mouseWheel() does; return false from fn to consume the event
-     *  (no page scroll, no orbitControl zoom). */
+     *  event.delta set the way p5's mouseWheel() does. A scope that asked owns the wheel over its
+     *  shapes: the page does not scroll and orbitControl() does not zoom, like scrolling inside a
+     *  scrollable element. */
     fn.scrolled = function (handler) {
       const st = state(this);
       const g = ask(this, 'scroll');
@@ -743,9 +744,9 @@
         acc.x += e.deltaX; acc.y += e.deltaY;
         st.nextScrolled.set(g.id, acc);
         e.delta = e.deltaY; // p5's mouseWheel() convention
-        for (const h of g.scrolls) {
-          if (h(e, hit) === false) { e.preventDefault(); e.stopPropagation(); }
-        }
+        e.preventDefault();  // the scope that asked owns this scroll: no page scroll, no orbit zoom
+        e.stopPropagation();
+        for (const h of g.scrolls) h(e, hit);
       }, this._removeSignal ? { signal: this._removeSignal, passive: false } : { passive: false });
     };
 

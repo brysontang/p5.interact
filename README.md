@@ -109,8 +109,9 @@ first returns a delta. See `examples/02_Drag_Between_Boxes`.
 **`scrolled(fn?)`** returns `{ x, y }`, the wheel delta accumulated over the last frame
 while the wheel was over the shapes in scope, or `null`. Positive `y` is down or away,
 p5's sign. With a function, it calls it once per wheel event as `fn(event, hit)` with
-`event.delta` set the way `mouseWheel()` sets it; return `false` to consume the event so
-the page doesn't scroll and `orbitControl()` doesn't zoom.
+`event.delta` set the way `mouseWheel()` sets it. A scope that asked owns the wheel over
+its shapes: the page doesn't scroll and `orbitControl()` doesn't zoom, like scrolling
+inside a scrollable element.
 
 **`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`** make the shapes that
 follow stop answering that one question, until `pop()` or it is asked again. `noFill()`
