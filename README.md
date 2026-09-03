@@ -63,8 +63,8 @@ comes next. `hovered()` doesn't attach a handler to a returned shape; it applies
 comes next. Say it that way and the rest follows without being designed: `push()` and
 `pop()` scope it, `noHover()` is `noFill()`, a question asked after a shape starts a new
 group the way a second `fill()` starts a new color, and a question you skip leaves the
-previous one in force. It isn't a model on top of p5. It's p5's model, pointed at the
-mouse.
+previous one in force. The goal of this library is to make interaction in p5 feel native
+and easy to reach for.
 
 `push()` and `pop()` are only there for what they always do in p5: the `translate` and
 the `fill`. The questions don't need them. A question asked after a shape has been
