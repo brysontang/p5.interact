@@ -106,7 +106,10 @@ per frame: a second `dragged()` on the same scope in the same frame returns `{ x
 **`dropped()`** returns `{ x, y }` for one frame after a drag was released over the
 shapes in scope, in the coordinates of the frame where you call it, or `null`. What was
 dropped is whatever your sketch was holding; keep it in a variable when `dragged()`
-first returns a delta. See `examples/02_Drag_Between_Boxes`.
+first returns a delta. Usually you won't move the thing to the drop point: the drag
+already left it where you released it, offset by wherever you grabbed it. A drop decides
+whether it may stay, and if it changed parents, shifts it by the difference between the
+two frames. See `examples/02_Drag_Between_Boxes`.
 
 **`scrolled()`** returns `{ x, y }`, the wheel delta accumulated over the last frame
 while the wheel was over the shapes in scope, or `null`. Positive `y` is down or away,
@@ -123,9 +126,8 @@ first.
 cursor never blocks what is under it, so a drop target can answer `hovered()` and
 `dropped()`. The held scope still reports `hovered()` as true.
 
-**`localMouse()`** is the mouse in the current coordinate frame, `{ x, y }`. Use it at
-lift time to remember where on a thing you grabbed it, so a drop doesn't recenter it on
-the cursor.
+**`localMouse()`** is the mouse in the current coordinate frame, `{ x, y }`, for when
+you want to place something at the mouse inside a transformed frame.
 
 **`dragging()`** is true while any drag is active. Use it to keep `orbitControl()`
 from fighting a drag: `if (!dragging()) orbitControl();`

@@ -5,11 +5,10 @@ let boxes = [
   { x: 200, y: 300, w: 300, h: 90, items: [] },
 ];
 
-// The circle being dragged, the box it came from, where it was, and where it was grabbed
+// The circle being dragged, the box it came from, and where it was
 let held = null;
 let from = null;
 let liftedAt = null;
-let grab = null;
 
 function setup() {
   // Create the canvas
@@ -41,13 +40,13 @@ function draw() {
     }
     translate(box.x, box.y);
 
-    // Something was released over this box: take it and place it at the drop point
-    let at = dropped();
-    if (at && held) {
+    // Something was released over this box: take it. The drag already left it where
+    // you let go, in the old box's coordinates, so only shift by the difference.
+    if (dropped() && held) {
       from.items.splice(from.items.indexOf(held), 1);
       box.items.push(held);
-      held.x = at.x + grab.x;
-      held.y = at.y + grab.y;
+      held.x += from.x - box.x;
+      held.y += from.y - box.y;
       held = null;
     }
 
@@ -78,9 +77,6 @@ function draw() {
         c.y += d.y;
         held = c;
         from = box;
-        // Remember where on the circle it was grabbed, in the box's coordinates
-        let m = localMouse();
-        grab = { x: c.x - m.x, y: c.y - m.y };
       }
       fill(hovered() ? 'orange' : 'steelblue');
       circle(c.x, c.y, 50);

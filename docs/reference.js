@@ -223,6 +223,7 @@ function draw() {
     description: [
       'Returns <code>{ x, y }</code> for one frame after a drag was released over the shapes drawn after this call, in the coordinates of the frame where you call it. Otherwise <code>null</code>.',
       'What was dropped is whatever your sketch was holding: keep it in a variable when <code>dragged()</code> first returns a delta. The thing being dragged is skipped by picking, so the target under it is what gets asked. Like clicks, drops do not bubble: the innermost scope that asked <code>dropped()</code> receives it.',
+      'Usually you will not move the thing to the drop point. The drag already left it exactly where you released it, offset by wherever you grabbed it. A drop decides whether it may stay, and if it changed parents, shifts its coordinates by the difference between the two frames. Set it to the drop point only when you mean to snap it to the cursor.',
       'Since <code>dropped()</code> fires in the middle of <code>draw()</code>, update your own drag state (what is held, where it came from) right there, so the rest of the frame draws the thing in its new place.',
     ],
     returns: '<code>{ x, y }</code> on the drop frame, else <code>null</code>.',
@@ -232,7 +233,7 @@ function draw() {
         code: `
 const boxes = [{ x: 20, y: 40, w: 130, h: 140 }, { x: 170, y: 40, w: 130, h: 140 }];
 let ball = { box: 0, x: 65, y: 70 };
-let held = false, home = null, grab = null;
+let held = false, home = null;
 
 function setup() {
   createCanvas(320, 220);
@@ -245,9 +246,11 @@ function draw() {
   for (const [i, b] of boxes.entries()) {
     push();
     translate(b.x, b.y);
-    const at = dropped();
-    if (at && held) {
-      ball = { box: i, x: at.x + grab.x, y: at.y + grab.y };
+    if (dropped() && held) {
+      // The drag left the ball where you released it, in the old box's coordinates.
+      // Moving it to this box only means shifting by the difference between the boxes.
+      const from = boxes[ball.box];
+      ball = { box: i, x: ball.x + from.x - b.x, y: ball.y + from.y - b.y };
       held = false;
     }
     fill(hovered() ? 70 : 45);
@@ -271,7 +274,6 @@ function drawBall() {
   if (d) {
     if (!held) home = { ...ball };
     ball.x += d.x; ball.y += d.y;
-    if (!held) { const m = localMouse(); grab = { x: ball.x - m.x, y: ball.y - m.y }; }
     held = true;
   }
   fill(held ? 'gold' : hovered() ? 'orange' : 'steelblue');
@@ -611,9 +613,9 @@ function draw() {
   background(30);
   noStroke();
 
-  // The box accepts drops anywhere in its body
-  const at = dropped();
-  if (at) { coin.x = at.x; coin.y = at.y; landed = true; }
+  // The box accepts drops anywhere in its body. The drag already put the coin
+  // where you let go, so a drop only has to let it stay.
+  if (dropped()) landed = true;
   fill(45);
   rect(120, 30, 180, 160, 12);
 
@@ -690,7 +692,7 @@ function draw() {
     summary: 'The mouse in the current coordinate frame.',
     description: [
       '<code>mouseX</code> and <code>mouseY</code> are in canvas pixels. <code>localMouse()</code> is the same point expressed in whatever frame your <code>translate()</code>, <code>rotate()</code>, and <code>scale()</code> calls have built, as <code>{ x, y }</code>. In WEBGL it is the point where the mouse ray meets the frame\'s z = 0 plane.',
-      'Use it at lift time to remember where on a thing you grabbed it, so a drop does not recenter the thing on the cursor.',
+      'Most sketches never need it, since <code>dragged()</code> already delivers deltas in local units. It is there for the moment you want to place something at the mouse in a transformed frame, or snap a dropped thing to the cursor while keeping the offset you grabbed it by.',
     ],
     returns: '<code>{ x, y }</code>, or <code>null</code> if the frame is edge-on to the camera.',
     examples: [
