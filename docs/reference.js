@@ -223,62 +223,45 @@ function draw() {
     description: [
       'Returns <code>{ x, y }</code> for one frame after a drag was released over the shapes drawn after this call, in the coordinates of the frame where you call it. Otherwise <code>null</code>.',
       'What was dropped is whatever your sketch was holding: keep it in a variable when <code>dragged()</code> first returns a delta. The thing being dragged is skipped by picking, so the target under it is what gets asked. Like clicks, drops do not bubble: the innermost scope that asked <code>dropped()</code> receives it.',
-      'Usually you will not move the thing to the drop point. The drag already left it exactly where you released it, offset by wherever you grabbed it. A drop decides whether it may stay, and if it changed parents, shifts its coordinates by the difference between the two frames. Set it to the drop point only when you mean to snap it to the cursor.',
+      'Usually you will not move the thing to the drop point. The drag already left it exactly where you released it, offset by wherever you grabbed it. A drop decides what happens next: keep it there, send it home, or hand it to a new parent by shifting its coordinates by the difference between the two frames. Set it to the drop point only when you mean to snap it to the cursor.',
       'Since <code>dropped()</code> fires in the middle of <code>draw()</code>, update your own drag state (what is held, where it came from) right there, so the rest of the frame draws the thing in its new place.',
     ],
     returns: '<code>{ x, y }</code> on the drop frame, else <code>null</code>.',
     examples: [
       {
-        caption: 'A circle that can be dropped into either box. While held it is drawn last, on top of both boxes, so its scope is keyed with push(ball). Drop it elsewhere and it goes home.',
+        caption: 'Drag the circle onto a square and let go. It returns to where it started, wearing the color of the square it was dropped on.',
         code: `
-const boxes = [{ x: 20, y: 40, w: 130, h: 140 }, { x: 170, y: 40, w: 130, h: 140 }];
-let ball = { box: 0, x: 65, y: 70 };
-let held = false, home = null;
+const swatches = [
+  { x: 60, y: 60, c: 'tomato' },
+  { x: 160, y: 60, c: 'gold' },
+  { x: 260, y: 60, c: 'mediumseagreen' },
+];
+let home = { x: 160, y: 160 };
+let ball = { x: 160, y: 160, c: 'steelblue' };
+let lifted = false;
 
 function setup() {
   createCanvas(320, 220);
+  noStroke();
+  rectMode(CENTER);
 }
 
 function draw() {
   background(30);
-  noStroke();
 
-  for (const [i, b] of boxes.entries()) {
-    push();
-    translate(b.x, b.y);
-    if (dropped() && held) {
-      // The drag left the ball where you released it, in the old box's coordinates.
-      // Moving it to this box only means shifting by the difference between the boxes.
-      const from = boxes[ball.box];
-      ball = { box: i, x: ball.x + from.x - b.x, y: ball.y + from.y - b.y };
-      held = false;
-    }
-    fill(hovered() ? 70 : 45);
-    rect(0, 0, b.w, b.h, 12);
-    if (ball.box === i && !held) drawBall();   // at rest: inside its box
-    pop();
+  // Each square asks dropped(). Drop the circle on one and it takes that color.
+  for (const s of swatches) {
+    if (dropped()) ball.c = s.c;
+    fill(s.c);
+    square(s.x, s.y, hovered() ? 66 : 60);
   }
 
-  if (held) {                                  // in flight: drawn last, above both boxes
-    push();
-    translate(boxes[ball.box].x, boxes[ball.box].y);
-    drawBall();
-    pop();
-  }
-  if (held && !dragging()) { ball = home; held = false; }
-}
-
-function drawBall() {
-  push(ball);                                  // keyed: same scope wherever it is drawn
+  // The circle: drag it anywhere. When released it goes home.
   const d = dragged();
-  if (d) {
-    if (!held) home = { ...ball };
-    ball.x += d.x; ball.y += d.y;
-    held = true;
-  }
-  fill(held ? 'gold' : hovered() ? 'orange' : 'steelblue');
+  if (d) { ball.x += d.x; ball.y += d.y; lifted = true; }
+  if (lifted && !dragging()) { ball.x = home.x; ball.y = home.y; lifted = false; }
+  fill(ball.c);
   circle(ball.x, ball.y, 50);
-  pop();
 }`,
       },
     ],
