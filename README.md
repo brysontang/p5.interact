@@ -112,8 +112,11 @@ p5's sign. With a function, it calls it once per wheel event as `fn(event, hit)`
 `event.delta` set the way `mouseWheel()` sets it; return `false` to consume the event so
 the page doesn't scroll and `orbitControl()` doesn't zoom.
 
-**`noInteract()`** makes the shapes that follow in this scope drawn but not picked, until
-`pop()` or the next question. `noFill()` for click space: ghosts, labels, backgrounds.
+**`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`** make the shapes that
+follow stop answering that one question, until `pop()` or it is asked again. `noFill()`
+for click space. **`noInteract()`** is all five at once. Often you need none of them:
+anything drawn *before* a question is not part of it, so draw captions and backgrounds
+first.
 
 **While a scope is being dragged, its shapes are skipped by picking.** The thing on your
 cursor never blocks what is under it, so a drop target can answer `hovered()` and

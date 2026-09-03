@@ -11,6 +11,13 @@ function draw() {
   background(30);
   noStroke();
 
+  // Name what is under the mouse. Drawn before any question, so the label
+  // itself is never picked.
+  let hit = hitInfo();
+  fill(150);
+  textSize(14);
+  text(hit ? 'under the mouse: ' + hit.shape.kind : 'under the mouse: nothing', width / 2, 375);
+
   // A rounded rectangle. Each question after a shape starts a new group,
   // so these need no push() / pop().
   fill(hovered() ? 'orange' : 'steelblue');
@@ -56,11 +63,4 @@ function draw() {
   fill(hovered() ? 'orange' : 200);
   text('text', 560, 190);
   pop();
-
-  // Name what is under the mouse. The label is not a shape to pick.
-  noInteract();
-  let hit = hitInfo();
-  fill(150);
-  textSize(14);
-  text(hit ? 'under the mouse: ' + hit.shape.kind : 'under the mouse: nothing', width / 2, 375);
 }

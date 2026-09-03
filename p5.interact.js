@@ -10,6 +10,7 @@
  *     dropped()        was something dragged and released on them? returns the drop point
  *     scrolled(fn?)    was the wheel scrolled over them? returns the delta (and: call fn per event)
  *     noInteract()     the shapes that follow are drawn but not in click space
+ *     noHover() …      the same, for one question at a time, like noFill()
  *     localMouse()     the mouse in the current coordinate frame, { x, y }
  *
  * Each one applies to the shapes drawn AFTER it, until the end of the enclosing
@@ -274,8 +275,10 @@
   //   interactDrag    ... dragged()                                  } it is drawn, exactly
   //   interactDrop    ... dropped()                                  } like fillColor
   //   interactScroll  ... scrolled()
-  //   interactMute    noInteract(): shapes are drawn but not recorded, until pop() or a question
   //   interactKey     push(key): groups created in this scope are named by the key
+  //
+  // noHover(), noClick(), noDrag(), noDrop(), noScroll() clear one key, like noFill();
+  // noInteract() clears all five.
 
   const config = {
     clickSlop: 5,       // px of pointer travel before a press is a drag, not a click
@@ -286,7 +289,7 @@
 
   const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll'];
   const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll' };
-  const STATE_KEYS = ['interactGroup', 'interactMute', 'interactKey', ...Object.values(KEY)];
+  const STATE_KEYS = ['interactGroup', 'interactKey', ...Object.values(KEY)];
 
   let current = null;
 
@@ -320,7 +323,6 @@
   // this question's state key at it, the way fill() points fillColor at a color.
   function ask(p, kind) {
     const st = state(p), states = S(p);
-    states.setValue('interactMute', false);
     let g = states.interactGroup;
     if (!g || !g.fresh) {
       const key = states.interactKey;
@@ -353,7 +355,6 @@
   // Is any question in force here? Cheap: read five keys. Shapes drawn with none are free.
   function listening(p) {
     const states = S(p);
-    if (states.interactMute) return false;
     for (const k of QUESTIONS) if (states[KEY[k]]) return true;
     return false;
   }
@@ -538,10 +539,16 @@
       return st.scrolledIds.get(g.id) || null;
     };
 
-    /** noInteract(): the shapes that follow in this scope are drawn but not picked,
-     *  until pop() or the next question. Like noFill() for click space. */
+    /** noHover() ... noScroll(): the shapes that follow no longer answer that one question,
+     *  until pop() or the question is asked again. Like noFill(). noInteract() is all five. */
+    fn.noHover = function () { S(this).setValue(KEY.hover, null); };
+    fn.noClick = function () { S(this).setValue(KEY.click, null); };
+    fn.noDrag = function () { S(this).setValue(KEY.drag, null); };
+    fn.noDrop = function () { S(this).setValue(KEY.drop, null); };
+    fn.noScroll = function () { S(this).setValue(KEY.scroll, null); };
     fn.noInteract = function () {
-      S(this).setValue('interactMute', true);
+      const states = S(this);
+      for (const k of QUESTIONS) states.setValue(KEY[k], null);
     };
 
     fn.dragged = function () {
@@ -797,6 +804,11 @@
     scrolled: (fn) => inst().scrolled(fn),
     dragging: () => inst().dragging(),
     noInteract: () => inst().noInteract(),
+    noHover: () => inst().noHover(),
+    noClick: () => inst().noClick(),
+    noDrag: () => inst().noDrag(),
+    noDrop: () => inst().noDrop(),
+    noScroll: () => inst().noScroll(),
     localMouse: () => inst().localMouse(),
     hitInfo: () => inst().hitInfo(),
     _math: { mul4, inv4, xf, roundRectSDF, pointInPoly, rayBox, raySphere, raySegment },

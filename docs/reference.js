@@ -147,13 +147,12 @@ function draw() {
   background(30);
   noStroke();
 
+  fill(255);
+  text(count + ' clicks', 160, 190);   // drawn before the question: not part of it
+
   fill(hovered() ? 'orange' : 'steelblue');
   clicked(() => count++);
   circle(160, 100, 100);
-
-  noInteract();                  // the caption is not a button
-  fill(255);
-  text(count + ' clicks', 160, 190);
 }`,
       },
     ],
@@ -399,7 +398,8 @@ function draw() {
     signature: 'noInteract()',
     summary: 'The shapes that follow are drawn but not in click space.',
     description: [
-      'Like <code>noFill()</code> for picking. Shapes drawn after it in this scope are rendered as usual but never hit-tested, until <code>pop()</code> or the next question in the scope turns picking back on.',
+      'Like <code>noFill()</code> and <code>noStroke()</code> together, for picking. Shapes drawn after it in this scope are rendered as usual but answer no question, until <code>pop()</code> or a question is asked again. It is <code>noHover()</code>, <code>noClick()</code>, <code>noDrag()</code>, <code>noDrop()</code> and <code>noScroll()</code> at once.',
+      'Often you do not need it: anything drawn <em>before</em> a question is not part of it, so a caption or a background drawn first needs no verb at all.',
       'Use it for labels drawn over a button, a background that would otherwise eat hovers, a ghost left behind while something is dragged, or a decorative ring around a selection.',
       'The opposite case also comes up: a shape nobody asks about that should still block what is behind it, like a panel drawn over a scene. Shapes are only recorded after a question, so an inert shape is see-through by default. To make it solid, ask a question in its scope and ignore the answer: <code>push(); hovered(); rect(...); pop();</code>.',
     ],
@@ -475,6 +475,210 @@ function draw() {
       },
     ],
     seeAlso: ['hovered', 'dropped'],
+  },
+
+  noHover: {
+    group: 'Verbs',
+    signature: 'noHover()',
+    summary: 'The shapes that follow no longer answer hovered().',
+    description: [
+      'Like <code>noFill()</code> for one question. Shapes drawn after it in this scope keep answering the other questions but not <code>hovered()</code>, until <code>pop()</code> or <code>hovered()</code> is asked again. <code>noInteract()</code> does this for all five at once. A shape that answers no question at all is not recorded, and does not block what is behind it; to make something inert but solid, leave it one question to answer, usually <code>hovered()</code>.',
+    ],
+    examples: [
+      {
+        caption: 'The shapes after noHover() still take part in everything except highlight.',
+        code: `
+function setup() {
+  createCanvas(320, 220);
+  textAlign(CENTER, CENTER);
+  textSize(16);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  fill(hovered() ? 'orange' : 'steelblue');
+  clicked(() => count++);
+  rect(60, 60, 200, 100, 20);
+
+  noHover();                     // the label still clicks, but does not light the button
+  fill(255);
+  text('clicks: ' + count, 160, 110);
+}
+
+let count = 0;`,
+      },
+    ],
+    seeAlso: ['noInteract', 'hovered'],
+  },
+
+  noClick: {
+    group: 'Verbs',
+    signature: 'noClick()',
+    summary: 'The shapes that follow no longer answer clicked().',
+    description: [
+      'Like <code>noFill()</code> for one question. Shapes drawn after it in this scope keep answering the other questions but not <code>clicked()</code>, until <code>pop()</code> or <code>clicked()</code> is asked again. <code>noInteract()</code> does this for all five at once. A shape that answers no question at all is not recorded, and does not block what is behind it; to make something inert but solid, leave it one question to answer, usually <code>hovered()</code>.',
+    ],
+    examples: [
+      {
+        caption: 'The shapes after noClick() still take part in everything except click.',
+        code: `
+let count = 0;
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(CENTER, CENTER);
+  textSize(16);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  fill(hovered() ? 'orange' : 'steelblue');
+  clicked(() => count++);
+  rect(60, 40, 200, 140, 20);
+
+  noClick();                     // the badge still highlights, but clicking it does nothing
+  fill(hovered() ? 'gold' : 'seagreen');
+  circle(160, 110, 50);
+
+  noInteract();
+  fill(255);
+  text('clicks: ' + count, 160, 200);
+}`,
+      },
+    ],
+    seeAlso: ['noInteract', 'clicked'],
+  },
+
+  noDrag: {
+    group: 'Verbs',
+    signature: 'noDrag()',
+    summary: 'The shapes that follow no longer answer dragged().',
+    description: [
+      'Like <code>noFill()</code> for one question. Shapes drawn after it in this scope keep answering the other questions but not <code>dragged()</code>, until <code>pop()</code> or <code>dragged()</code> is asked again. <code>noInteract()</code> does this for all five at once. A shape that answers no question at all is not recorded, and does not block what is behind it; to make something inert but solid, leave it one question to answer, usually <code>hovered()</code>.',
+    ],
+    examples: [
+      {
+        caption: 'The shapes after noDrag() still take part in everything except drag.',
+        code: `
+let pos = { x: 60, y: 60 };
+
+function setup() {
+  createCanvas(320, 220);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  push();
+  const d = dragged();
+  if (d) { pos.x += d.x; pos.y += d.y; }
+  translate(pos.x, pos.y);
+  fill(hovered() ? 70 : 50);
+  rect(0, 0, 200, 100, 16);       // drag the panel by its body
+
+  noDrag();                      // the knob is part of the panel's hover, but grabbing it does not drag
+  fill(hovered() ? 'gold' : 'steelblue');
+  circle(160, 50, 40);
+  pop();
+}`,
+      },
+    ],
+    seeAlso: ['noInteract', 'dragged'],
+  },
+
+  noDrop: {
+    group: 'Verbs',
+    signature: 'noDrop()',
+    summary: 'The shapes that follow no longer answer dropped().',
+    description: [
+      'Like <code>noFill()</code> for one question. Shapes drawn after it in this scope keep answering the other questions but not <code>dropped()</code>, until <code>pop()</code> or <code>dropped()</code> is asked again. <code>noInteract()</code> does this for all five at once. A shape that answers no question at all is not recorded, and does not block what is behind it; to make something inert but solid, leave it one question to answer, usually <code>hovered()</code>.',
+    ],
+    examples: [
+      {
+        caption: 'The shapes after noDrop() still take part in everything except drop.',
+        code: `
+let ball = { x: 50, y: 170 };
+let where = 'nowhere';
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(CENTER, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  fill(200);
+  text('dropped: ' + where, 160, 20);
+
+  if (dropped()) where = 'the zone';
+  fill(45);
+  rect(40, 40, 240, 100, 12);
+
+  noDrop();                      // a hole in the zone: dropping here counts as nowhere
+  fill(hovered() ? 40 : 30);     // asking hovered() keeps it in click space, so it covers the zone
+  circle(160, 90, 50);
+
+  const d = dragged();
+  if (d) { ball.x += d.x; ball.y += d.y; }
+  fill('gold');
+  circle(ball.x, ball.y, 30);
+  if (!dragging() && !dropped()) { /* stays put */ }
+}`,
+      },
+    ],
+    seeAlso: ['noInteract', 'dropped'],
+  },
+
+  noScroll: {
+    group: 'Verbs',
+    signature: 'noScroll()',
+    summary: 'The shapes that follow no longer answer scrolled().',
+    description: [
+      'Like <code>noFill()</code> for one question. Shapes drawn after it in this scope keep answering the other questions but not <code>scrolled()</code>, until <code>pop()</code> or <code>scrolled()</code> is asked again. <code>noInteract()</code> does this for all five at once. A shape that answers no question at all is not recorded, and does not block what is behind it; to make something inert but solid, leave it one question to answer, usually <code>hovered()</code>.',
+    ],
+    examples: [
+      {
+        caption: 'The shapes after noScroll() still take part in everything except scroll.',
+        code: `
+let offset = 0;
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(LEFT, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  const s = scrolled();
+  if (s) offset = constrain(offset + s.y, 0, 300);
+  fill(45);
+  rect(20, 20, 280, 180, 12);
+  fill(200);
+  for (let i = 0; i < 15; i++) {
+    const y = 40 + i * 30 - offset;
+    if (y > 20 && y < 190) text('item ' + (i + 1), 40, y);
+  }
+
+  noScroll();                    // a header: it highlights, but the wheel over it does nothing
+  fill(hovered() ? 80 : 60);     // asking hovered() keeps it in click space, so it covers the list
+  rect(20, 20, 280, 36, 12);
+  fill(255);
+  text('header', 40, 38);
+}`,
+      },
+    ],
+    seeAlso: ['noInteract', 'scrolled'],
   },
 
   localMouse: {
@@ -625,15 +829,14 @@ function draw() {
   background(30);
   noStroke();
 
+  fill(255);
+  text(clicks + ' clicks · slop ' + interact.config.clickSlop + 'px', 160, 200);
+
   if (clicked()) clicks++;
   const d = dragged();
   if (d) { pos.x += d.x; pos.y += d.y; }
   fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
   circle(pos.x, pos.y, 80);
-
-  noInteract();
-  fill(255);
-  text(clicks + ' clicks · slop ' + interact.config.clickSlop + 'px', 160, 200);
 }`,
       },
     ],
