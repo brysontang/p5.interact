@@ -257,6 +257,7 @@ function draw() {
   }
 
   // The circle: drag it anywhere. When released it goes home.
+  noHover();                     // otherwise it would inherit the last square's hovered()
   const d = dragged();
   if (d) { ball.x += d.x; ball.y += d.y; lifted = true; }
   if (lifted && !dragging()) { ball.x = home.x; ball.y = home.y; lifted = false; }
