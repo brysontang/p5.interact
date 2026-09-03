@@ -2,13 +2,14 @@
  * p5.interact — interaction for p5 without ceremony.
  *
  * A p5 2.x addon. Load it after p5.js and before your sketch. Works in WEBGL and 2D,
- * in global and instance mode. It adds five questions you can ask inside draw():
+ * in global and instance mode. It adds six questions you can ask inside draw():
  *
  *     hovered()        is the mouse over the shapes that follow?
  *     clicked()        were they clicked? true for one frame
  *     dragged()        are they being dragged? returns the delta in local coordinates
  *     dropped()        was something dragged and released on them? returns the drop point
  *     scrolled()       was the wheel scrolled over them? returns the delta
+ *     distance()       how far is the mouse from them? screen pixels, 0 inside
  *
  * Every question returns a value that is truthy when it applies, read inside draw() the
  * way mouseIsPressed and movedX are. There are no callbacks.
@@ -153,6 +154,22 @@
     }
   }
 
+  // Signed distance from (u, v) to a shape's edge in its own units, negative inside.
+  // Exact for rects, polygons and lines; the ellipse is a scaled-circle estimate.
+  function sdf2D(s, u, v) {
+    switch (s.kind) {
+      case 'rect': return roundRectSDF(u - s.x, v - s.y, s.w, s.h, s.r);
+      case 'ellipse': { const x = (u - s.cx) / s.a, y = (v - s.cy) / s.b; return (Math.hypot(x, y) - 1) * Math.min(s.a, s.b); }
+      case 'poly': {
+        let d = Infinity;
+        for (let i = 0, j = s.pts.length - 1; i < s.pts.length; j = i++) d = Math.min(d, segDist2(u, v, s.pts[j], s.pts[i]));
+        return pointInPoly(s.pts, u, v) ? -d : d;
+      }
+      case 'line': return segDist2(u, v, s.a, s.b) - s.sw;
+      default: return Infinity;
+    }
+  }
+
   // ---------------------------------------------------------------- 3D tests (ray in shape space)
 
   function planeHit(o, d) {
@@ -264,6 +281,82 @@
     }
   }
 
+  // Distance from the mouse to a shape's edge in screen pixels (0 inside), WEBGL.
+  function distGL(s, nx, ny, pxNdc) {
+    const inv = s.inv || (s.inv = inv4(s.mvp));
+    if (!inv) return Infinity;
+    const ray = modelRay(inv, nx, ny);
+    if (!ray) return Infinity;
+    const { o, d } = ray;
+    // model units per screen pixel at parameter t along the ray
+    const upp = (t) => { const r2 = modelRay(inv, nx + pxNdc, ny); return r2 ? Math.hypot((r2.o[0] + t * r2.d[0]) - (o[0] + t * d[0]), (r2.o[1] + t * r2.d[1]) - (o[1] + t * d[1]), (r2.o[2] + t * r2.d[2]) - (o[2] + t * d[2])) : 1; };
+    switch (s.kind) {
+      case 'rect': case 'ellipse': {
+        const h = planeHit(o, d);
+        if (!h) return Infinity;
+        return Math.max(0, sdf2D(s, h.u, h.v)) / upp(h.t);
+      }
+      case 'poly': {
+        const pl = polyPlane(s);
+        if (!pl) return Infinity;
+        const dn = d[0] * pl.n[0] + d[1] * pl.n[1] + d[2] * pl.n[2];
+        if (Math.abs(dn) < 1e-12) return Infinity;
+        const t = ((pl.p0[0] - o[0]) * pl.n[0] + (pl.p0[1] - o[1]) * pl.n[1] + (pl.p0[2] - o[2]) * pl.n[2]) / dn;
+        if (t < 0 || t > 1) return Infinity;
+        const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
+        const u = p[pl.keep[0]], v = p[pl.keep[1]];
+        let dd = Infinity;
+        for (let i = 0, j = pl.pts2.length - 1; i < pl.pts2.length; j = i++) dd = Math.min(dd, segDist2(u, v, pl.pts2[j], pl.pts2[i]));
+        return (pointInPoly(pl.pts2, u, v) ? 0 : dd) / upp(t);
+      }
+      case 'line': {
+        const h = raySegment(o, d, s.a, s.b);
+        return h ? Math.max(0, h.dist - s.sw) / upp(h.t) : Infinity;
+      }
+      case 'sphere': {
+        const A = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        const t = Math.max(0, Math.min(1, -(o[0] * d[0] + o[1] * d[1] + o[2] * d[2]) / A));
+        const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
+        return Math.max(0, Math.hypot(p[0], p[1], p[2]) - s.r) / upp(t);
+      }
+      case 'box': {
+        if (rayBox(o, d, s.w, s.h, s.d)) return 0;
+        const A = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        const t = Math.max(0, Math.min(1, -(o[0] * d[0] + o[1] * d[1] + o[2] * d[2]) / A));
+        const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
+        const q = [Math.abs(p[0]) - s.w / 2, Math.abs(p[1]) - s.h / 2, Math.abs(p[2]) - s.d / 2];
+        return Math.hypot(Math.max(q[0], 0), Math.max(q[1], 0), Math.max(q[2], 0)) / upp(t); // approximate: at the ray's closest point to the center
+      }
+      default: return Infinity;
+    }
+  }
+
+  // Per frame: for every group that asked distance(), the nearest of its shapes, in pixels.
+  function measureDistances(p, st, mx, my) {
+    const out = new Map();
+    if (mx == null || !(p.width > 0) || !(p.height > 0)) return out;
+    const shapes = st.frozen.shapes;
+    const gl = isGL(p);
+    const nx = (2 * mx) / p.width - 1, ny = 1 - (2 * my) / p.height, pxNdc = 2 / p.width;
+    const pd = gl ? 1 : p.pixelDensity();
+    const pt = gl ? null : new DOMPoint(mx * pd, my * pd);
+    for (const s of shapes) {
+      const g = s.q.distance;
+      if (!g) continue;
+      let px;
+      if (gl) px = distGL(s, nx, ny, pxNdc);
+      else {
+        const inv = s.inv || (s.inv = s.m2d.inverse());
+        const q = inv.transformPoint(pt);
+        const upp = pd * Math.hypot(inv.a, inv.b);
+        px = Math.max(0, sdf2D(s, q.x, q.y)) / upp;
+      }
+      const prev = out.get(g.id);
+      if (prev === undefined || px < prev) out.set(g.id, px);
+    }
+    return out;
+  }
+
   // ---------------------------------------------------------------- state
   //
   // A question is drawing state, stored where p5 stores drawing state: on the renderer's
@@ -278,6 +371,7 @@
   //   interactDrag    ... dragged()                                  } it is drawn, exactly
   //   interactDrop    ... dropped()                                  } like fillColor
   //   interactScroll  ... scrolled()
+  //   interactDistance ... distance()
   //   interactKey     push(key): groups created in this scope are named by the key
   //   interactKeyN    ... numbered from 0 within that push, so the same key drawn twice in a
   //                   frame (a lifted layer) yields the same ids and a drag follows it
@@ -292,8 +386,8 @@
     frameRate: Infinity, // applied after setup() unless the sketch called frameRate() itself; null = leave p5 alone
   };
 
-  const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll'];
-  const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll' };
+  const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll', 'distance'];
+  const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll', distance: 'interactDistance' };
   const STATE_KEYS = ['interactGroup', 'interactKey', 'interactKeyN', ...Object.values(KEY)];
 
   let current = null;
@@ -305,6 +399,7 @@
       hoveredIds: new Set(), clickedIds: new Set(), nextClicked: new Set(),
       droppedIds: new Map(), nextDropped: new Map(),
       scrolledIds: new Map(), nextScrolled: new Map(),
+      distances: new Map(),
       hover: null, drag: null, down: null, cursor: null,
       verts: null,
       keyIds: new WeakMap(), nextKeyId: 1,
@@ -557,6 +652,16 @@
       return st.scrolledIds.get(g.id) || null;
     };
 
+    /** distance(): screen pixels from the mouse to the nearest edge of the shapes that follow, 0 when
+     *  inside one, Infinity when none were drawn. Exact for rects, polygons, lines and spheres; an
+     *  estimate for ellipses and boxes. */
+    fn.distance = function () {
+      const st = state(this);
+      const g = ask(this, 'distance');
+      const d = st.distances.get(g.id);
+      return d === undefined ? Infinity : d;
+    };
+
     /** noHover() ... noScroll(): the shapes that follow no longer answer that one question,
      *  until pop() or the question is asked again. Like noFill(). noInteract() is all five. */
     fn.noHover = function () { S(this).setValue(KEY.hover, null); };
@@ -564,6 +669,7 @@
     fn.noDrag = function () { S(this).setValue(KEY.drag, null); };
     fn.noDrop = function () { S(this).setValue(KEY.drop, null); };
     fn.noScroll = function () { S(this).setValue(KEY.scroll, null); };
+    fn.noDistance = function () { S(this).setValue(KEY.distance, null); };
     fn.noInteract = function () {
       const states = S(this);
       for (const k of QUESTIONS) states.setValue(KEY[k], null);
@@ -780,6 +886,7 @@
       const hit = resolve(this, st, this.mouseX, this.mouseY);
       st.hover = hit;
       st.hoveredIds = hoverSet(hit);
+      st.distances = measureDistances(this, st, this.mouseX, this.mouseY);
       if (config.cursor && st.shapes.length) {
         const want = hit || st.drag ? 'pointer' : 'default';
         if (st.cursor !== want) { st.cursor = want; this.cursor(want); }
@@ -810,12 +917,14 @@
     dragged: () => inst().dragged(),
     dropped: () => inst().dropped(),
     scrolled: () => inst().scrolled(),
+    distance: () => inst().distance(),
     noInteract: () => inst().noInteract(),
     noHover: () => inst().noHover(),
     noClick: () => inst().noClick(),
     noDrag: () => inst().noDrag(),
     noDrop: () => inst().noDrop(),
     noScroll: () => inst().noScroll(),
+    noDistance: () => inst().noDistance(),
     localMouse: () => inst().localMouse(),
     hitInfo: () => inst().hitInfo(),
     _math: { mul4, inv4, xf, roundRectSDF, pointInPoly, rayBox, raySphere, raySegment },

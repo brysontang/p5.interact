@@ -341,12 +341,62 @@ function draw() {
     seeAlso: ['clicked', 'dragged', 'hovered'],
   },
 
+  distance: {
+    group: 'Questions',
+    signature: 'distance()',
+    summary: 'How far is the mouse from the shapes that follow?',
+    description: [
+      'Returns the distance in screen pixels from the mouse to the nearest edge of the shapes drawn after this call, <code>0</code> when the mouse is inside one of them, and <code>Infinity</code> when none were drawn. It is a number, so use it in arithmetic: fade something in as the mouse approaches, or treat <code>distance() &lt; 8</code> as a generous hover for something thin.',
+      'Exact for rectangles, polygons, lines and spheres. An estimate for ellipses and boxes, within a pixel or two, which is more than a glow needs. Measured in pixels at any zoom, so a proximity effect feels the same near and far.',
+      'It costs one distance test per shape that asked, the same order of work as picking, so it is fine to ask every frame for every shape on screen.',
+    ],
+    returns: '<code>Number</code>, pixels; <code>0</code> inside, <code>Infinity</code> if no shape followed.',
+    examples: [
+      {
+        caption: 'Three circles that brighten as the mouse approaches. The one under the mouse is full brightness.',
+        code: `
+function setup() {
+  createCanvas(320, 220);
+  noStroke();
+}
+
+function draw() {
+  background(30);
+
+  for (let i = 0; i < 3; i++) {
+    const d = distance();                       // pixels to this circle, 0 inside
+    const glow = constrain(1 - d / 120, 0, 1);  // 1 at the edge, 0 at 120 px away
+    fill(lerpColor(color(50, 70, 100), color('gold'), glow));
+    circle(60 + i * 100, 110, 60);
+  }
+}`,
+      },
+      {
+        caption: 'A thin line with a generous hover. distance() < 8 is a hover you can actually hit.',
+        code: `
+function setup() {
+  createCanvas(320, 220);
+}
+
+function draw() {
+  background(30);
+
+  const near = distance() < 8;
+  stroke(near ? 'orange' : 140);
+  strokeWeight(near ? 3 : 1);
+  line(30, 190, 290, 30);
+}`,
+      },
+    ],
+    seeAlso: ['hovered', 'hitInfo'],
+  },
+
   noInteract: {
     group: 'Verbs',
     signature: 'noInteract()',
     summary: 'The shapes that follow are drawn but not in click space.',
     description: [
-      'Like <code>noFill()</code> and <code>noStroke()</code> together, for picking. Shapes drawn after it in this scope are rendered as usual but answer no question, until <code>pop()</code> or a question is asked again. It is <code>noHover()</code>, <code>noClick()</code>, <code>noDrag()</code>, <code>noDrop()</code> and <code>noScroll()</code> at once.',
+      'Like <code>noFill()</code> and <code>noStroke()</code> together, for picking. Shapes drawn after it in this scope are rendered as usual but answer no question, until <code>pop()</code> or a question is asked again. It is <code>noHover()</code>, <code>noClick()</code>, <code>noDrag()</code>, <code>noDrop()</code>, <code>noScroll()</code> and <code>noDistance()</code> at once.',
       'Often you do not need it: anything drawn <em>before</em> a question is not part of it, so a caption or a background drawn first needs no verb at all.',
       'Use it for labels drawn over a button, a background that would otherwise eat hovers, a ghost left behind while something is dragged, or a decorative ring around a selection.',
       'The opposite case also comes up: a shape nobody asks about that should still block what is behind it, like a panel drawn over a scene. Shapes are only recorded after a question, so an inert shape is see-through by default. To make it solid, ask a question in its scope and ignore the answer: <code>push(); hovered(); rect(...); pop();</code>.',

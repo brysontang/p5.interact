@@ -53,9 +53,23 @@ Each question is its own piece of state, the way fill and stroke are separate: a
 
 ## The negations
 
-`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()` make the shapes that follow stop answering that one question, until `pop()` or it is asked again. `noFill()` for click space. `noInteract()` is all five at once.
+`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`, `noDistance()` make the shapes that follow stop answering that one question, until `pop()` or it is asked again. `noFill()` for click space. `noInteract()` is all six at once.
 
 A shape that answers no question at all is not recorded, and does not block what is behind it: you can grab a draggable thing through a plain `rect()` drawn on top of it. To make an inert shape solid, leave it one question to answer, usually `hovered()`.
+
+## A bigger hit area
+
+To make something clickable from a few pixels away, draw a bigger invisible shape first. p5 skips painting a shape that has neither fill nor stroke, but the library still records it, so it is a hit area and nothing else:
+
+```js
+noFill();
+noStroke();
+circle(x, y, 60);          // invisible, in click space: the halo
+fill('steelblue');
+circle(x, y, 40);          // what you see
+```
+
+For hover effects that should start before the mouse arrives, `distance()` is the better tool: it returns the pixels to the nearest edge, so `distance() < 8` is a generous hover and `1 - distance() / 100` is a glow.
 
 ## Dragging and dropping
 

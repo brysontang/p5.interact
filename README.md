@@ -21,7 +21,7 @@ function draw() {
 }
 ```
 
-A p5 2.x addon, one file, no build step. It adds five questions you can ask inside
+A p5 2.x addon, one file, no build step. It adds six questions you can ask inside
 `draw()`. Each applies to the shapes drawn after it, and each returns a value that is
 truthy when it applies, read inside `draw()` the way you read `mouseIsPressed`. No ids,
 no handlers, no registration. State lives in your variables, where p5 sketches keep it
@@ -75,9 +75,10 @@ To turn it off: `interact.config.frameRate = null;`
 | [`dragged()`](https://brysontang.github.io/p5.interact/docs/reference/dragged.html) | `{ x, y }` while they are dragged, in local coordinates |
 | [`dropped()`](https://brysontang.github.io/p5.interact/docs/reference/dropped.html) | `{ x, y }` for one frame after something is dropped on them |
 | [`scrolled()`](https://brysontang.github.io/p5.interact/docs/reference/scrolled.html) | `{ x, y }` wheel delta while the wheel is over them |
+| [`distance()`](https://brysontang.github.io/p5.interact/docs/reference/distance.html) | pixels from the mouse to their nearest edge, `0` inside |
 
-`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()` turn one question off for
-the shapes that follow, like `noFill()`; `noInteract()` turns off all five.
+`noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`, `noDistance()` turn one
+question off for the shapes that follow, like `noFill()`; `noInteract()` turns off all six.
 [`push(key)`](https://brysontang.github.io/p5.interact/docs/reference/push.html) keys a
 scope by the object it draws. [`localMouse()`](https://brysontang.github.io/p5.interact/docs/reference/localMouse.html)
 and [`hitInfo()`](https://brysontang.github.io/p5.interact/docs/reference/hitInfo.html) are
