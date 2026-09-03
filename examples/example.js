@@ -59,10 +59,11 @@ async function renderExample() {
   const iframe = document.querySelector('iframe');
   const ta = document.querySelector('textarea');
   ta.value = code.trim();
-  ta.rows = ta.value.split('\n').length + 1;
+  const fit = () => { ta.rows = ta.value.split('\n').length; };
   const run = () => { iframe.srcdoc = sketchDocument(ta.value); };
   let t = null;
-  ta.addEventListener('input', () => { clearTimeout(t); t = setTimeout(run, 500); });
+  ta.addEventListener('input', () => { fit(); clearTimeout(t); t = setTimeout(run, 500); });
+  fit();
   ta.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
