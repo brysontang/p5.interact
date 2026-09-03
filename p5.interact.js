@@ -271,8 +271,8 @@
   // restore it, so scoping costs this library nothing. Each question is its own key, the
   // way fill and stroke are separate: asking clicked() again does not reset hovered().
   //
-  //   interactGroup   the group the most recent question created (or reused, if no shape
-  //                   has been drawn since it was created)
+  //   interactGroup   the group the most recent question in this scope created (or reused,
+  //                   if no shape has been drawn since); a push() starts with none
   //   interactHover   the group that currently answers hovered()   } set by each question,
   //   interactClick   ... clicked()                                  } read by each shape as
   //   interactDrag    ... dragged()                                  } it is drawn, exactly
@@ -500,6 +500,9 @@
     //    adds the key. pop() needs no wrapper at all.
     const pushImpl = function (key) {
       const out = orig.push.call(this);
+      // A new scope inherits the questions in force, but starts with no current group: a
+      // question asked inside it always begins its own group, never joins the parent's.
+      S(this).setValue('interactGroup', null);
       if (key !== undefined) {
         S(this).setValue('interactKey', keyId(state(this), key));
         S(this).setValue('interactKeyN', { n: 0 });
