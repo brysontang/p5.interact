@@ -279,6 +279,8 @@
   //   interactDrop    ... dropped()                                  } like fillColor
   //   interactScroll  ... scrolled()
   //   interactKey     push(key): groups created in this scope are named by the key
+  //   interactKeyN    ... numbered from 0 within that push, so the same key drawn twice in a
+  //                   frame (a lifted layer) yields the same ids and a drag follows it
   //
   // noHover(), noClick(), noDrag(), noDrop(), noScroll() clear one key, like noFill();
   // noInteract() clears all five.
@@ -292,13 +294,13 @@
 
   const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll'];
   const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll' };
-  const STATE_KEYS = ['interactGroup', 'interactKey', ...Object.values(KEY)];
+  const STATE_KEYS = ['interactGroup', 'interactKey', 'interactKeyN', ...Object.values(KEY)];
 
   let current = null;
 
   function state(p) {
     return p._interact || (p._interact = {
-      groups: 0, keyCounts: new Map(), shapes: [],
+      groups: 0, shapes: [],
       frozen: { shapes: [] },
       hoveredIds: new Set(), clickedIds: new Set(), nextClicked: new Set(),
       droppedIds: new Map(), nextDropped: new Map(),
@@ -331,9 +333,8 @@
       const key = states.interactKey;
       let id;
       if (key != null) {
-        const n = st.keyCounts.get(key) || 0;
-        st.keyCounts.set(key, n + 1);
-        id = `${key}.${n}`;
+        const counter = states.interactKeyN; // one per push(key); restored by pop()
+        id = `${key}.${counter.n++}`;
       } else {
         id = `o${st.groups}`;
       }
@@ -472,8 +473,17 @@
     fn.__p5interact = true;
     const orig = {};
     for (const name of ['push', 'rect', 'square', 'ellipse', 'circle', 'triangle', 'quad', 'line',
-      'text', 'image', 'plane', 'box', 'sphere', 'beginShape', 'vertex', 'endShape', 'frameRate']) {
+      'text', 'image', 'plane', 'box', 'sphere', 'beginShape', 'vertex', 'endShape', 'frameRate', 'orbitControl']) {
       orig[name] = fn[name];
+    }
+
+    // -- orbitControl() sits out while a shape is being dragged. Nobody wants the camera to
+    //    orbit under the thing they are holding, so the sketch never has to say so.
+    if (orig.orbitControl) {
+      fn.orbitControl = function (...a) {
+        if (state(this).drag) return;
+        return orig.orbitControl.apply(this, a);
+      };
     }
 
     // -- frame pacing. p5 draws on a display refresh only if 1000/target - 5 ms have passed,
@@ -490,7 +500,10 @@
     //    adds the key. pop() needs no wrapper at all.
     const pushImpl = function (key) {
       const out = orig.push.call(this);
-      if (key !== undefined) S(this).setValue('interactKey', keyId(state(this), key));
+      if (key !== undefined) {
+        S(this).setValue('interactKey', keyId(state(this), key));
+        S(this).setValue('interactKeyN', { n: 0 });
+      }
       return out;
     };
     fn.push = pushImpl;
@@ -569,10 +582,6 @@
       d.lastX = mx; d.lastY = my;
       d.delta = a && b ? { x: b[0] - a[0], y: b[1] - a[1] } : { x: 0, y: 0 };
       return d.delta;
-    };
-
-    fn.dragging = function () {
-      return !!state(this).drag;
     };
 
     /** localMouse(): mouseX/mouseY expressed in the current coordinate frame (its z = 0 plane in WEBGL). */
@@ -752,7 +761,6 @@
       const states = S(this);
       for (const k of STATE_KEYS) states[k] = null;
       st.groups = 0;
-      st.keyCounts = new Map();
       st.shapes = [];
       st.verts = null;
       st.clickedIds = st.nextClicked;
@@ -799,7 +807,6 @@
     dragged: () => inst().dragged(),
     dropped: () => inst().dropped(),
     scrolled: () => inst().scrolled(),
-    dragging: () => inst().dragging(),
     noInteract: () => inst().noInteract(),
     noHover: () => inst().noHover(),
     noClick: () => inst().noClick(),

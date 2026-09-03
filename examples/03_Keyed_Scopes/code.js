@@ -4,7 +4,8 @@ let items = [];
 // Whether scopes are keyed by the item, or matched by order
 let keyed = false;
 
-// When the last circle was added during a drag
+// Whether a circle is being held, and when the last one was added during a drag
+let holding = false;
 let lastAdded = 0;
 
 function setup() {
@@ -30,15 +31,16 @@ function addItem() {
 function draw() {
   background(30);
 
-  // While a drag is held, add a circle every second
-  if (dragging() && millis() - lastAdded > 1000) {
+  // While a circle is held, add a circle every second
+  if (holding && millis() - lastAdded > 1000) {
     addItem();
     lastAdded = millis();
   }
-  if (!dragging()) {
+  if (!holding) {
     lastAdded = millis();
   }
 
+  holding = false;
   for (let it of items) {
     // With a key, this scope is "it" whatever its position in the row
     push(keyed ? it : undefined);
@@ -46,6 +48,7 @@ function draw() {
     if (d) {
       it.x += d.x;
       it.y += d.y;
+      holding = true;
     }
     fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
     circle(it.x, it.y, 80);

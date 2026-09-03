@@ -165,6 +165,7 @@ function draw() {
       'Returns <code>{ x, y }</code> while the shapes drawn after this call are being dragged, in the coordinates of the frame where you call it, or <code>null</code>. Call it before your <code>translate()</code> and the delta is in the parent\'s units, ready to add to a position.',
       'Everything drawn after it in the scope moves together, which is how a group drag works with no extra code: put <code>dragged()</code> on the group, not on the pieces. A drag is claimed by the innermost scope that asked for it and stays claimed until release, even if the mouse leaves the shape.',
       'The delta is delivered once per frame. A second <code>dragged()</code> on the same scope in the same frame returns <code>{ x: 0, y: 0 }</code>, which is still truthy. While a scope is dragged its shapes are skipped by picking, so whatever is underneath can answer <code>hovered()</code> and <code>dropped()</code>.',
+      'On the frame after release it returns <code>null</code> again, so <code>else if (lifted)</code> is where a drag ends. In WEBGL, <code>orbitControl()</code> sits out while a shape is being dragged, so a sketch can call it every frame without checking.',
     ],
     returns: '<code>{ x, y }</code> while dragging, else <code>null</code>.',
     examples: [
@@ -213,7 +214,7 @@ function draw() {
 }`,
       },
     ],
-    seeAlso: ['dropped', 'dragging', 'localMouse', 'push'],
+    seeAlso: ['dropped', 'localMouse', 'push'],
   },
 
   dropped: {
@@ -335,43 +336,6 @@ function draw() {
       },
     ],
     seeAlso: ['clicked', 'dragged', 'hovered'],
-  },
-
-  dragging: {
-    group: 'Questions',
-    signature: 'dragging()',
-    summary: 'Is any drag in progress?',
-    description: [
-      'Returns <code>true</code> from the moment a draggable scope is pressed until the pointer is released. It is not scoped: it asks about the whole sketch.',
-      'Its main job is to keep <code>orbitControl()</code> from fighting a drag in WEBGL: <code>if (!dragging()) orbitControl();</code>. It is also how a sketch notices that a drag ended somewhere nothing asked <code>dropped()</code>.',
-    ],
-    returns: '<code>Boolean</code>',
-    examples: [
-      {
-        caption: 'Orbit with the mouse, unless the mouse is holding the box.',
-        code: `
-const pos = { x: 0, y: 0 };
-
-function setup() {
-  createCanvas(320, 220, WEBGL);
-}
-
-function draw() {
-  background(30);
-  if (!dragging()) orbitControl();
-
-  push();
-  const d = dragged();
-  if (d) { pos.x += d.x; pos.y += d.y; }
-  translate(pos.x, pos.y, 0);
-  noStroke();
-  fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
-  box(70);
-  pop();
-}`,
-      },
-    ],
-    seeAlso: ['dragged', 'dropped'],
   },
 
   noInteract: {
@@ -607,18 +571,18 @@ function draw() {
   fill(hovered() ? 80 : 60);
   rect(120, 30, 180, 34, 12);
 
-  // The coin
+  // The coin. dragged() is null again the frame after release: that is where the drag ends.
   const d = dragged();
-  if (d) { coin.x += d.x; coin.y += d.y; lifted = true; }
-  fill(hovered() ? 'orange' : 'gold');
-  circle(coin.x, coin.y, 30);
-
-  // Released somewhere that took no drop: back home
-  if (lifted && !dragging()) {
-    if (!landed) coin = { ...home };
+  if (d) {
+    coin.x += d.x; coin.y += d.y;
+    lifted = true;
+  } else if (lifted) {
+    if (!landed) coin = { ...home };   // released somewhere that took no drop: back home
     lifted = false;
     landed = false;
   }
+  fill(hovered() ? 'orange' : 'gold');
+  circle(coin.x, coin.y, 30);
 }`,
       },
     ],

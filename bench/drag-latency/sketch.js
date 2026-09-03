@@ -90,6 +90,7 @@ function draw() {
   // -- blue: p5.interact
   push();
   const d = dragged();
+  const blueHeld = !!d;
   if (d) { blue.x += d.x; blue.y += d.y; }
   translate(blue.x, blue.y);
   fill(hovered() ? color(140, 200, 255) : color(60, 120, 200));
@@ -100,7 +101,7 @@ function draw() {
   // -- orange: hand-rolled, the way you would write it without any library
   const mx = mouseX - width / 2, my = mouseY - height / 2;
   const overOrange = mx > orange.x && mx < orange.x + orange.w && my > orange.y && my < orange.y + orange.h;
-  if (mouseIsPressed && (orangeHeld || overOrange) && !dragging()) {
+  if (mouseIsPressed && (orangeHeld || overOrange) && !blueHeld) {
     if (orangeHeld) { orange.x += movedX; orange.y += movedY; }
     orangeHeld = true;
   } else {

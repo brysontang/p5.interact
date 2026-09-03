@@ -93,16 +93,14 @@ function draw() {
     if (d) {
       held.x += d.x;
       held.y += d.y;
+    } else {
+      // dragged() is null again the frame after release. No box took it: back home.
+      held.x = liftedAt.x;
+      held.y = liftedAt.y;
     }
-    fill('gold');
+    fill(d ? 'gold' : 'steelblue');
     circle(held.x, held.y, 50);
+    if (!d) held = null;
     pop();
-  }
-
-  // Released over nothing: back where it came from
-  if (held && !dragging()) {
-    held.x = liftedAt.x;
-    held.y = liftedAt.y;
-    held = null;
   }
 }

@@ -13,10 +13,8 @@ function setup() {
 function draw() {
   background(30);
 
-  // Orbit with the mouse, unless the mouse is holding something
-  if (!dragging()) {
-    orbitControl();
-  }
+  // Orbit with the mouse. While the box is being dragged, orbitControl() sits out on its own.
+  orbitControl();
 
   // The box: draggable in the plane it sits in
   push();

@@ -129,8 +129,9 @@ cursor never blocks what is under it, so a drop target can answer `hovered()` an
 **`localMouse()`** is the mouse in the current coordinate frame, `{ x, y }`, for when
 you want to place something at the mouse inside a transformed frame.
 
-**`dragging()`** is true while any drag is active. Use it to keep `orbitControl()`
-from fighting a drag: `if (!dragging()) orbitControl();`
+**A drag ends where `dragged()` returns `null` again**, the frame after release, so
+`else if (lifted)` is the place to snap something home. In WEBGL, `orbitControl()` sits
+out while a shape is being dragged, so call it every frame without checking.
 
 **`hitInfo()`** is the full hover record: `{ shape, u, v, t }`, with `u, v` in the
 shape's own coordinates.
