@@ -32,19 +32,11 @@ function exampleBlock(ex, i) {
   const iframe = wrap.querySelector('iframe');
   const ta = wrap.querySelector('textarea');
   ta.value = ex.code.trim();
-  const fit = () => { ta.rows = ta.value.split('\n').length; }; // exactly the code: same padding above and below
-  const run = () => { iframe.srcdoc = sketchDocument(ta.value); };
+  ta.rows = ta.value.split('\n').length;
+  let code = ta.value;
+  const run = () => { iframe.srcdoc = sketchDocument(code); };
   let t = null;
-  ta.addEventListener('input', () => { fit(); clearTimeout(t); t = setTimeout(run, 500); });
-  fit();
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') { // keep tab in the editor
-      e.preventDefault();
-      const s = ta.selectionStart, end = ta.selectionEnd;
-      ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + 2;
-    }
-  });
+  makeEditor(ta, (v) => { code = v; clearTimeout(t); t = setTimeout(run, 500); });
   run();
   return wrap;
 }

@@ -50,7 +50,7 @@ main.ref td.type { color: var(--muted); white-space: nowrap; font-size: 13px; }
 }
 .code textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
 .example .caption { grid-column: 1 / -1; color: var(--muted); font-size: 14px; margin-top: -8px; }
-.code .hint { position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--muted); }
+.code .hint { position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--muted); z-index: 3; }
 
 .index-list { list-style: none; padding: 0; }
 .index-list li { padding: 10px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
@@ -78,3 +78,20 @@ main.readme pre.block code { background: none; padding: 0; }
 main.readme table { margin: 12px 0; }
 main.readme th { text-align: left; padding: 6px 10px 6px 0; border-bottom: 2px solid var(--rule); font-size: 13px; color: var(--muted); }
 main.readme li { margin: 4px 0; }
+
+/* CodeMirror, styled like the plain code box it replaces */
+.code .CodeMirror {
+  height: auto; font: 13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--code-bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px;
+}
+.code .CodeMirror-lines { padding: 0; }
+.code .CodeMirror pre.CodeMirror-line, .code .CodeMirror pre.CodeMirror-line-like { padding: 0; }
+.code .CodeMirror-focused { outline: 2px solid var(--accent); border-color: transparent; }
+.code .CodeMirror-cursor { border-left-color: var(--ink); }
+.cm-s-default .cm-keyword { color: #a626a4; }
+.cm-s-default .cm-def, .cm-s-default .cm-variable-2 { color: #4078f2; }
+.cm-s-default .cm-number { color: #986801; }
+.cm-s-default .cm-string { color: #50a14f; }
+.cm-s-default .cm-comment { color: #a0a1a7; font-style: italic; }
+.cm-s-default .cm-property, .cm-s-default .cm-variable { color: var(--ink); }
+.cm-s-default .cm-atom { color: #986801; }

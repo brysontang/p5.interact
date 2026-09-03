@@ -59,19 +59,11 @@ async function renderExample() {
   const iframe = document.querySelector('iframe');
   const ta = document.querySelector('textarea');
   ta.value = code.trim();
-  const fit = () => { ta.rows = ta.value.split('\n').length; };
-  const run = () => { iframe.srcdoc = sketchDocument(ta.value); };
+  ta.rows = ta.value.split('\n').length;
+  let current = code.trim();
+  const run = () => { iframe.srcdoc = sketchDocument(current); };
   let t = null;
-  ta.addEventListener('input', () => { fit(); clearTimeout(t); t = setTimeout(run, 500); });
-  fit();
-  ta.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const s = ta.selectionStart, end = ta.selectionEnd;
-      ta.value = ta.value.slice(0, s) + '  ' + ta.value.slice(end);
-      ta.selectionStart = ta.selectionEnd = s + 2;
-    }
-  });
+  makeEditor(ta, (v) => { current = v; clearTimeout(t); t = setTimeout(run, 500); });
   run();
 
   // Sidebar: every sibling example, from the shared list
