@@ -168,6 +168,12 @@ function draw() {
 }
 ```
 
+**Ask every frame, then decide.** A question inside a branch that doesn't run is never
+asked, and the previous question stays in force for the shapes that follow, the way a
+fill you didn't set stays in force. `fill(lit ? 'gold' : hovered() ? 'orange' : 'blue')`
+skips `hovered()` whenever `lit` is true, so the shape inherits whatever was asked
+before it. Put the question on its own line: `const hot = hovered();`.
+
 **Scopes are matched by order, unless you key them.** The third `push()` this frame is
 the same thing as the third `push()` last frame. For hover that means a one-frame
 flicker if a scope appears earlier in the draw. Clicks are immune, because the handler

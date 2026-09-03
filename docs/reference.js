@@ -11,6 +11,7 @@ const REFERENCE = {
       'Returns <code>true</code> when the mouse was over any shape drawn after this call, in this scope, on the previous frame. The question applies until the closing <code>pop()</code>, the same way <code>describeElement()</code> scopes itself. Questions asked back to back, like <code>hovered()</code> followed by <code>clicked()</code>, share the shapes that follow; a question asked after a shape has been drawn starts a new group.',
       'Nothing bubbles. When scopes nest, the innermost scope that asked <code>hovered()</code> is the one that answers <code>true</code>; its parents answer <code>false</code>. To make a group light up together, ask once at the group and let the children inherit it. Called at top level, outside any <code>push()</code>, it means "over anything drawn after this".',
       'The answer is one frame behind the draw, like every immediate-mode UI. While a scope is being dragged it reports <code>true</code>, because what you hold is under the mouse by definition.',
+      'Ask every frame, then decide. A question inside a branch that does not run, like the second half of <code>lit ? \'gold\' : hovered() ? ...</code>, is never asked, and the previous question stays in force for the shapes that follow, the way a fill you did not set stays in force. Put the question on its own line: <code>const hot = hovered();</code>.',
     ],
     returns: '<code>Boolean</code>',
     examples: [
@@ -126,7 +127,8 @@ function draw() {
   noStroke();
 
   if (clicked()) on = !on;
-  fill(on ? 'gold' : hovered() ? 120 : 80);
+  const hot = hovered();           // ask every frame: a skipped question leaves the last one in force
+  fill(on ? 'gold' : hot ? 120 : 80);
   rect(90, 70, 140, 80, 20);
 }`,
       },
@@ -183,8 +185,9 @@ function draw() {
   noStroke();
 
   const d = dragged();
+  const hot = hovered();
   if (d) { pos.x += d.x; pos.y += d.y; }
-  fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+  fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
   circle(pos.x, pos.y, 80);
 }`,
       },
@@ -740,8 +743,9 @@ function draw() {
   for (const it of items) {
     push(it);                            // try push() instead and drag one past another
     const d = dragged();
+    const hot = hovered();
     if (d) it.x += d.x;
-    fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+    fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
     circle(it.x, 110, 60);
     pop();
   }
@@ -786,8 +790,9 @@ function draw() {
 
   if (clicked()) clicks++;
   const d = dragged();
+  const hot = hovered();
   if (d) { pos.x += d.x; pos.y += d.y; }
-  fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+  fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
   circle(pos.x, pos.y, 80);
 }`,
       },

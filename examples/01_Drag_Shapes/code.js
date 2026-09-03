@@ -20,11 +20,12 @@ function draw() {
   // The circle. dragged() returns { x, y } while it is being dragged,
   // and null otherwise.
   let d = dragged();
+  let hot = hovered();
   if (d) {
     ball.x += d.x;
     ball.y += d.y;
   }
-  fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+  fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
   circle(ball.x, ball.y, 140);
 
   // The panel. dragged() is asked once, before translate(), so the delta is in

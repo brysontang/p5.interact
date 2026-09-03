@@ -19,13 +19,14 @@ function draw() {
   // The box: draggable in the plane it sits in
   push();
   let d = dragged();
+  let hot = hovered();
   if (d) {
     cube.x += d.x;
     cube.y += d.y;
   }
   translate(cube.x, cube.y, 0);
   rotateY(frameCount * 0.01);
-  fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+  fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
   box(90);
   pop();
 

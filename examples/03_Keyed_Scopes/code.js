@@ -45,12 +45,13 @@ function draw() {
     // With a key, this scope is "it" whatever its position in the row
     push(keyed ? it : undefined);
     let d = dragged();
+    let hot = hovered();
     if (d) {
       it.x += d.x;
       it.y += d.y;
       holding = true;
     }
-    fill(d ? 'gold' : hovered() ? 'orange' : 'steelblue');
+    fill(d ? 'gold' : hot ? 'orange' : 'steelblue');
     circle(it.x, it.y, 80);
     pop();
   }
