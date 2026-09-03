@@ -45,7 +45,7 @@ async function renderExample() {
         <h2>Examples</h2>
         <ul id="nav"></ul>
         <h2>More</h2>
-        <ul><li><a href="../../docs/">reference</a></li><li><a href="../../docs/readme.html">README</a></li></ul>
+        <ul><li><a href="../../docs/">reference</a></li><li><a href="../../docs/guide.html">guide</a></li><li><a href="../../docs/readme.html">README</a></li></ul>
       </nav>
       <main class="ref">
         <h1 class="prose">${escapeHtml(title)}</h1>
@@ -99,7 +99,7 @@ function renderExampleIndex() {
         <h1><a href="../docs/">p5.interact</a></h1>
         <div class="tag">interaction without ceremony</div>
         <h2>More</h2>
-        <ul><li><a href="../docs/">reference</a></li><li><a href="../docs/readme.html">README</a></li><li><a href="../bench/drag-latency/">drag-latency bench</a></li></ul>
+        <ul><li><a href="../docs/">reference</a></li><li><a href="../docs/guide.html">guide</a></li><li><a href="../docs/readme.html">README</a></li><li><a href="../bench/drag-latency/">drag-latency bench</a></li></ul>
       </nav>
       <main class="ref">
         <h1 class="prose">Examples</h1>

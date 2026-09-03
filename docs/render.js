@@ -63,6 +63,7 @@ function sideNav(current, root) {
         <ul>${names.map((n) => `<li><a class="${n === current ? 'current' : ''}" href="${ref}${n}.html">${REFERENCE[n].signature.split('(')[0]}${REFERENCE[n].signature.includes('(') ? '()' : ''}</a></li>`).join('')}</ul>`).join('')}
       <h2>More</h2>
       <ul>
+        <li><a class="prose ${current === 'guide' ? 'current' : ''}" href="${root}docs/guide.html">Guide</a></li>
         <li><a class="prose ${current === 'readme' ? 'current' : ''}" href="${root}docs/readme.html">README</a></li>
         <li><a class="prose" href="${root}examples/">examples</a></li>
         <li><a class="prose" href="${root}bench/drag-latency/">drag-latency bench</a></li>
@@ -109,16 +110,22 @@ function renderIndex() {
         <ul class="index-list">
           ${Object.entries(REFERENCE).map(([n, r]) => `<li><a href="reference/${n}.html">${esc(r.signature)}</a><span>${r.summary}</span></li>`).join('')}
         </ul>
+        <p>The <a href="guide.html">guide</a> is the longer read: why questions are drawing state, dragging and dropping, keyed scopes, what gets picked and how, and frame pacing.</p>
       </main>
     </div>`;
 }
 
-async function renderReadme() {
-  const md = await fetch('../README.md').then((r) => r.text());
-  document.title = 'README · p5.interact';
+// A markdown page in the docs: the README, the guide. Headings get ids so #links work.
+async function renderMarkdownPage(path, current, title) {
+  const md = await fetch(path).then((r) => r.text());
+  document.title = `${title} · p5.interact`;
   document.body.innerHTML = `
     <div class="layout">
-      ${sideNav('readme', '../')}
+      ${sideNav(current, '../')}
       <main class="ref readme">${renderMarkdown(md)}</main>
     </div>`;
+  for (const h of document.querySelectorAll('main h2, main h3')) {
+    h.id = h.textContent.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
 }
