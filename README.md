@@ -108,10 +108,11 @@ Six sketches in the style of the p5 examples, each with its code beside it:
 [Picking in 3D](https://brysontang.github.io/p5.interact/examples/04_Picking_In_3D/),
 [Every Shape](https://brysontang.github.io/p5.interact/examples/05_Every_Shape/).
 
-To work on the docs or examples locally:
+To work on the docs or examples locally, and to run the tests:
 
 ```
-python3 dev.py       # http://localhost:5173, live reload on save
+python3 dev.py       # http://localhost:5173, live reload on save; tests at /test/
+npm test             # the same tests in headless Chromium (needs: npx playwright install chromium)
 ```
 
 ## Releasing

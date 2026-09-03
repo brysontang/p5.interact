@@ -36,6 +36,10 @@
   },
   "scripts": {
     "dev": "python3 dev.py",
-    "version": "node scripts/sync-version.js && git add README.md docs/render.js"
+    "version": "node scripts/sync-version.js && git add README.md docs/render.js",
+    "test": "node test/run.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0"
   }
 }
