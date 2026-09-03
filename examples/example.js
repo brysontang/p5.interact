@@ -108,10 +108,12 @@ function renderExampleIndex() {
       </main>
     </div>`;
   const list = document.getElementById('list');
-  for (const [dir, name] of EXAMPLES) {
-    fetch(`${dir}/description.md`).then((r) => r.text()).then((md) => {
+  // Fetch every description first, then render in list order (not in arrival order).
+  Promise.all(EXAMPLES.map(([dir]) => fetch(`${dir}/description.md`).then((r) => r.text()))).then((mds) => {
+    mds.forEach((md, i) => {
+      const [dir, name] = EXAMPLES[i];
       const one = md.trim().split('\n').slice(1).join('\n').trim().split(/\n\s*\n/)[0];
       list.insertAdjacentHTML('beforeend', `<li><a class="prose" href="${dir}/">${escapeHtml(name)}</a><span>${escapeHtml(one)}</span></li>`);
     });
-  }
+  });
 }
