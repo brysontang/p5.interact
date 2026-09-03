@@ -69,7 +69,7 @@ fill('steelblue');
 circle(x, y, 40);          // what you see
 ```
 
-For hover effects that should start before the mouse arrives, `distance()` is the better tool: it returns the pixels to the nearest edge, so `distance() < 8` is a generous hover and `1 - distance() / 100` is a glow.
+For hover effects that should start before the mouse arrives, `distance()` is the better tool: it returns the pixels to the nearest edge, so `distance() < 16` is a generous hover and `1 - distance() / 100` is a glow.
 
 ## Dragging and dropping
 

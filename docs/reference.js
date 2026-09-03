@@ -346,7 +346,7 @@ function draw() {
     signature: 'distance()',
     summary: 'How far is the mouse from the shapes that follow?',
     description: [
-      'Returns the distance in screen pixels from the mouse to the nearest edge of the shapes drawn after this call, <code>0</code> when the mouse is inside one of them, and <code>Infinity</code> when none were drawn. It is a number, so use it in arithmetic: fade something in as the mouse approaches, or treat <code>distance() &lt; 8</code> as a generous hover for something thin.',
+      'Returns the distance in screen pixels from the mouse to the nearest edge of the shapes drawn after this call, <code>0</code> when the mouse is inside one of them, and <code>Infinity</code> when none were drawn. It is a number, so use it in arithmetic: fade something in as the mouse approaches, or treat <code>distance() &lt; 16</code> as a generous hover for something thin.',
       'Exact for rectangles, polygons, lines and spheres. An estimate for ellipses and boxes, within a pixel or two, which is more than a glow needs. Measured in pixels at any zoom, so a proximity effect feels the same near and far.',
       'It costs one distance test per shape that asked, the same order of work as picking, so it is fine to ask every frame for every shape on screen.',
     ],
@@ -372,7 +372,7 @@ function draw() {
 }`,
       },
       {
-        caption: 'A thin line with a generous hover. distance() < 8 is a hover you can actually hit.',
+        caption: 'A thin line with a generous hover. distance() < 16 is a hover you can actually hit.',
         code: `
 function setup() {
   createCanvas(320, 220);
@@ -381,7 +381,7 @@ function setup() {
 function draw() {
   background(30);
 
-  const near = distance() < 8;
+  const near = distance() < 16;
   stroke(near ? 'orange' : 140);
   strokeWeight(near ? 3 : 1);
   line(30, 190, 290, 30);
