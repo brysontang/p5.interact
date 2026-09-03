@@ -50,12 +50,11 @@ p5 already has two ways to be interactive, and neither one touches the canvas.
 The global event functions, `mousePressed()` and `mouseDragged()`, know when the mouse
 did something and nothing about what you drew. So every sketch that wants a clickable
 shape writes `if (dist(mouseX, mouseY, x, y) < r)` by hand, which only works for circles,
-and gives up on anything rotated.
+and has no answer for a rotated rectangle or a shape built from `vertex()`.
 
 The DOM layer, `createButton().mousePressed(fn)` and `draggable()`, works because it
 isn't canvas at all. Those are retained elements with handlers attached to the returned
-object, an idiom p5 otherwise avoids, which is why that corner of the reference reads
-like a different library.
+object, an idiom p5 otherwise avoids, which is why it feels separate from the rest of p5.
 
 What neither does is treat interaction the way p5 treats everything else: as state you
 set before you draw. `fill()` doesn't attach a color to a returned shape; it colors what

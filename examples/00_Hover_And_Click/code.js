@@ -7,7 +7,7 @@ function setup() {
   noStroke();
 
   // Set screen reader accessible description
-  describe('Three shapes that brighten when the mouse is over them and change color when clicked.');
+  describe('A circle, a rounded square and a star that brighten when the mouse is over them and change color when clicked.');
 }
 
 function draw() {
@@ -27,9 +27,16 @@ function draw() {
   fill(lit[1] ? 'gold' : hot ? 'orange' : 'seagreen');
   rect(275, 115, 170, 170, 24);
 
-  // A triangle. Picking is exact, so the corners of the bounding box do not count.
+  // A star built from vertices. Picking is exact: the gaps between the points
+  // do not count, and no shape needs its own hit test.
   if (clicked()) lit[2] = !lit[2];
   hot = hovered();
   fill(lit[2] ? 'gold' : hot ? 'orange' : 'indianred');
-  triangle(480, 290, 565, 110, 650, 290);
+  beginShape();
+  for (let i = 0; i < 10; i++) {
+    let r = i % 2 === 0 ? 95 : 40;
+    let a = -HALF_PI + i * PI / 5;
+    vertex(565 + r * cos(a), 200 + r * sin(a));
+  }
+  endShape(CLOSE);
 }
