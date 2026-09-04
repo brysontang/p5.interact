@@ -216,7 +216,8 @@ test('scrolled(): accumulates per frame; a scope that asked owns the wheel', asy
   await s.moveTo(150, 120);
   const consumed = s.wheel(150, 120, 50); s.wheel(150, 120, 30); await s.frames(1);
   assert.equal(consumed, true, 'consumed over the shape');
-  assert.deepEqual(s.E('s'), { x: 0, y: 80 }, 'two events add up');
+  assert.deepEqual([s.E('s.x'), s.E('s.y'), s.E('s.n')], [0, 80, 2], 'two events add up, and are counted');
+  assert.ok(typeof s.E('s.t') === 'number' && s.E('s.t') > 0, 't is when the last event arrived');
   await s.frames(1); assert.equal(s.E('s'), null, 'nothing more next frame');
   assert.equal(s.wheel(350, 280, 50), false, 'not consumed off the shape');
   s.done();
@@ -344,7 +345,7 @@ test('tolerance belongs to the question: a halo for the wheel, none for the drag
     fill(100); rect(pos.x, pos.y, 100, 50)}`);
   await s.moveTo(90, 125);
   assert.equal(s.wheel(90, 125, 40), true, 'the wheel 10 px outside is owned'); await s.frames(1);
-  assert.deepEqual(s.E('sc'), { x: 0, y: 40 }, 'and delivered');
+  assert.deepEqual([s.E('sc.x'), s.E('sc.y')], [0, 40], 'and delivered');
   await s.drag(90, 125, 150, 160); assert.equal(s.E('pos.x'), 100, 'a press 10 px outside does not grab');
   await s.drag(150, 125, 210, 160); assert.equal(s.E('pos.x'), 160, 'a press inside does');
   s.done();

@@ -74,7 +74,7 @@ To turn it off: `interact.config.frameRate = null;`
 | [`clicked()`](https://brysontang.github.io/p5.interact/docs/reference/clicked.html) | `true` for one frame after they are clicked |
 | [`dragged()`](https://brysontang.github.io/p5.interact/docs/reference/dragged.html) | `{ x, y }` while they are dragged, in local coordinates |
 | [`dropped()`](https://brysontang.github.io/p5.interact/docs/reference/dropped.html) | `{ x, y }` for one frame after something is dropped on them |
-| [`scrolled()`](https://brysontang.github.io/p5.interact/docs/reference/scrolled.html) | `{ x, y }` wheel delta while the wheel is over them |
+| [`scrolled()`](https://brysontang.github.io/p5.interact/docs/reference/scrolled.html) | `{ x, y, n, t }` wheel delta while the wheel is over them, with event count and time |
 | [`distance()`](https://brysontang.github.io/p5.interact/docs/reference/distance.html) | pixels from the mouse to their nearest edge, `0` inside |
 
 `noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`, `noDistance()` turn one

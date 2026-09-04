@@ -674,10 +674,12 @@
       return pt ? { x: pt[0], y: pt[1] } : { x: 0, y: 0 };
     };
 
-    /** scrolled(): { x, y } wheel delta accumulated over the last frame while the wheel was over
-     *  the shapes that follow, else null. Positive y is down or away, p5's sign. A scope that asked
-     *  owns the wheel over its shapes: the page does not scroll and orbitControl() does not zoom,
-     *  like scrolling inside a scrollable element. */
+    /** scrolled(): { x, y, n, t } wheel delta accumulated over the last frame while the wheel was
+     *  over the shapes that follow, else null. Positive y is down or away, p5's sign. n is how many
+     *  wheel events the delta sums and t is performance.now() of the last one: enough to tell a
+     *  mouse notch (one event, tens of ms apart) from a trackpad gesture (one or more per frame).
+     *  A scope that asked owns the wheel over its shapes: the page does not scroll and
+     *  orbitControl() does not zoom, like scrolling inside a scrollable element. */
     fn.scrolled = function () {
       const st = state(this);
       const g = ask(this, 'scroll');
@@ -895,8 +897,9 @@
         const hit = resolve(this, st, mx, my, undefined, 'scroll');
         const g = hit && hit.shape.q.scroll;
         if (!g) return;
-        const acc = st.nextScrolled.get(g.id) || { x: 0, y: 0 };
+        const acc = st.nextScrolled.get(g.id) || { x: 0, y: 0, n: 0, t: 0 };
         acc.x += e.deltaX; acc.y += e.deltaY;
+        acc.n++; acc.t = performance.now();   // how many events this sums, and when the last arrived
         st.nextScrolled.set(g.id, acc);
         e.preventDefault();  // the scope that asked owns this scroll: no page scroll, no orbit zoom
         e.stopPropagation();

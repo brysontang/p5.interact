@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1
+
+`scrolled()` also reports `n`, how many wheel events the frame's delta sums, and `t`,
+`performance.now()` of the last one. A mouse notch is one event tens of milliseconds
+from the next; a trackpad sends one or more every frame. Sketches that want a notch to
+mean "one item" can now tell them apart without guessing from the delta's size, which
+differs by OS and mouse.
+
 ## 0.3.0
 
 `tolerance(px)` and `noTolerance()`. Questions asked after `tolerance(px)` answer within

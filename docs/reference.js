@@ -277,7 +277,7 @@ function draw() {
     signature: 'scrolled()',
     summary: 'Was the wheel scrolled over the shapes that follow?',
     description: [
-      'Returns <code>{ x, y }</code>, the wheel delta accumulated over the last frame while the wheel was over the shapes drawn after this call, or <code>null</code>. Positive <code>y</code> is scrolling down or away from you, the same sign p5 uses. Two wheel events in one frame add up, so the value is what <code>draw()</code> needs.',
+      'Returns <code>{ x, y, n, t }</code>, the wheel delta accumulated over the last frame while the wheel was over the shapes drawn after this call, or <code>null</code>. Positive <code>y</code> is scrolling down or away from you, the same sign p5 uses. Two wheel events in one frame add up, so the value is what <code>draw()</code> needs; <code>n</code> says how many events the sum covers and <code>t</code> is <code>performance.now()</code> of the last one, which is enough to tell a mouse notch (one event, tens of milliseconds from the next) from a trackpad gesture (one or more every frame) when a sketch wants to treat them differently.',
       'A scope that asked owns the wheel over its shapes: the page does not scroll and <code>orbitControl()</code> does not zoom, the way scrolling inside a scrollable element never scrolls the page. Like every question, it is answered for the innermost scope that asked.',
     ],
     returns: '<code>{ x, y }</code> for the last frame\'s scrolling, else <code>null</code>.',
