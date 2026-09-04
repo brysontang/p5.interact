@@ -25,7 +25,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brysontang/p5.interact.git"
+    "url": "git+https://github.com/brysontang/p5.interact.git"
   },
   "homepage": "https://github.com/brysontang/p5.interact#readme",
   "bugs": {
