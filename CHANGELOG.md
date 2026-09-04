@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0
+
+`tolerance(px)` and `noTolerance()`. Questions asked after `tolerance(px)` answer within
+`px` screen pixels of a shape's edge, not only inside it. The tolerance is drawing state,
+like `strokeWeight()`, but it is captured by each question when asked, so
+`tolerance(12); scrolled(); noTolerance(); dragged();` gives the wheel a halo over the
+gaps of a list while a drag still has to start on an item. Screen pixels at any zoom,
+in 2D and WEBGL, for every primitive.
+
+Internally, each question is now resolved with its own tolerance: hover, click, drag,
+drop and scroll each pick the nearest shape as tested with the halo that question was
+asked with. With no `tolerance()` call nothing changes.
+
 ## 0.2.0
 
 Questions are drawing state. Every question is stored on p5's own `states` object next

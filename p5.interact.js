@@ -15,6 +15,7 @@
  * way mouseIsPressed and movedX are. There are no callbacks.
  *     noInteract()     the shapes that follow are drawn but not in click space
  *     noHover() …      the same, for one question at a time, like noFill()
+ *     tolerance(px)    questions asked after it also answer within px of a shape's edge
  *     localMouse()     the mouse in the current coordinate frame, { x, y }
  *
  * Each one applies to the shapes drawn AFTER it, until the end of the enclosing
@@ -154,6 +155,11 @@
     }
   }
 
+  // A hit within `tol` screen pixels of the edge: inside, or the signed distance is small enough.
+  function hit2D(s, u, v, upp, tol) {
+    return inShape2D(s, u, v, upp) || (tol > 0 && sdf2D(s, u, v) <= tol * upp);
+  }
+
   // Signed distance from (u, v) to a shape's edge in its own units, negative inside.
   // Exact for rects, polygons and lines; the ellipse is a scaled-circle estimate.
   function sdf2D(s, u, v) {
@@ -242,17 +248,20 @@
     return { t, dist: Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]) };
   }
 
-  function hitGL(s, nx, ny, pxNdc) {
+  function hitGL(s, nx, ny, pxNdc, tol = 0) {
     const inv = s.inv || (s.inv = inv4(s.mvp));
     if (!inv) return null;
     const ray = modelRay(inv, nx, ny);
     if (!ray) return null;
     const { o, d } = ray;
+    // model units per screen pixel at parameter t along the ray (a second ray one pixel over)
+    const upp = (t) => { const r2 = modelRay(inv, nx + pxNdc, ny); return r2 ? Math.hypot((r2.o[0] + t * r2.d[0]) - (o[0] + t * d[0]), (r2.o[1] + t * r2.d[1]) - (o[1] + t * d[1]), (r2.o[2] + t * r2.d[2]) - (o[2] + t * d[2])) : 1; };
     switch (s.kind) {
       case 'rect':
       case 'ellipse': {
         const h = planeHit(o, d);
-        return h && inShape2D(s, h.u, h.v) ? h : null;
+        if (!h) return null;
+        return hit2D(s, h.u, h.v, tol > 0 ? upp(h.t) : 1, tol) ? h : null;
       }
       case 'poly': {
         const pl = polyPlane(s);
@@ -262,21 +271,36 @@
         const t = ((pl.p0[0] - o[0]) * pl.n[0] + (pl.p0[1] - o[1]) * pl.n[1] + (pl.p0[2] - o[2]) * pl.n[2]) / dn;
         if (t < 0 || t > 1) return null;
         const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
-        return pointInPoly(pl.pts2, p[pl.keep[0]], p[pl.keep[1]]) ? { t, u: p[0], v: p[1] } : null;
+        const u = p[pl.keep[0]], v = p[pl.keep[1]];
+        if (pointInPoly(pl.pts2, u, v)) return { t, u: p[0], v: p[1] };
+        if (tol <= 0) return null;
+        let dd = Infinity;
+        for (let i = 0, j = pl.pts2.length - 1; i < pl.pts2.length; j = i++) dd = Math.min(dd, segDist2(u, v, pl.pts2[j], pl.pts2[i]));
+        return dd <= tol * upp(t) ? { t, u: p[0], v: p[1] } : null;
       }
       case 'line': {
         const h = raySegment(o, d, s.a, s.b);
         if (!h) return null;
-        // model units per screen pixel at the depth of the closest approach
-        const r2 = modelRay(inv, nx + pxNdc, ny);
-        const upp = r2 ? Math.hypot(
-          (r2.o[0] + h.t * r2.d[0]) - (o[0] + h.t * d[0]),
-          (r2.o[1] + h.t * r2.d[1]) - (o[1] + h.t * d[1]),
-          (r2.o[2] + h.t * r2.d[2]) - (o[2] + h.t * d[2])) : 0;
-        return h.dist <= Math.max(s.sw, config.lineTolerance * upp) ? { t: h.t } : null;
+        const u = upp(h.t);
+        return h.dist <= Math.max(s.sw, config.lineTolerance * u) + tol * u ? { t: h.t } : null;
       }
-      case 'box': return rayBox(o, d, s.w, s.h, s.d);
-      case 'sphere': return raySphere(o, d, s.r);
+      case 'box': {
+        const h = rayBox(o, d, s.w, s.h, s.d);
+        if (h || tol <= 0) return h;
+        const A = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        const t = Math.max(0, Math.min(1, -(o[0] * d[0] + o[1] * d[1] + o[2] * d[2]) / A));
+        const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
+        const q = [Math.abs(p[0]) - s.w / 2, Math.abs(p[1]) - s.h / 2, Math.abs(p[2]) - s.d / 2];
+        return Math.hypot(Math.max(q[0], 0), Math.max(q[1], 0), Math.max(q[2], 0)) <= tol * upp(t) ? { t } : null;
+      }
+      case 'sphere': {
+        const h = raySphere(o, d, s.r);
+        if (h || tol <= 0) return h;
+        const A = d[0] * d[0] + d[1] * d[1] + d[2] * d[2];
+        const t = Math.max(0, Math.min(1, -(o[0] * d[0] + o[1] * d[1] + o[2] * d[2]) / A));
+        const p = [o[0] + t * d[0], o[1] + t * d[1], o[2] + t * d[2]];
+        return Math.hypot(p[0], p[1], p[2]) - s.r <= tol * upp(t) ? { t } : null;
+      }
       default: return null;
     }
   }
@@ -372,6 +396,8 @@
   //   interactDrop    ... dropped()                                  } like fillColor
   //   interactScroll  ... scrolled()
   //   interactDistance ... distance()
+  //   interactTolerance  tolerance(px): the halo, in screen pixels, that the next question captures
+  //   interact*Tol    the halo each question was asked with, read by each shape as it is drawn
   //   interactKey     push(key): groups created in this scope are named by the key
   //   interactKeyN    ... numbered from 0 within that push, so the same key drawn twice in a
   //                   frame (a lifted layer) yields the same ids and a drag follows it
@@ -388,7 +414,9 @@
 
   const QUESTIONS = ['hover', 'click', 'drag', 'drop', 'scroll', 'distance'];
   const KEY = { hover: 'interactHover', click: 'interactClick', drag: 'interactDrag', drop: 'interactDrop', scroll: 'interactScroll', distance: 'interactDistance' };
-  const STATE_KEYS = ['interactGroup', 'interactKey', 'interactKeyN', ...Object.values(KEY)];
+  // the tolerance each question captured when it was asked (see tolerance())
+  const TOL = { hover: 'interactHoverTol', click: 'interactClickTol', drag: 'interactDragTol', drop: 'interactDropTol', scroll: 'interactScrollTol', distance: 'interactDistanceTol' };
+  const STATE_KEYS = ['interactGroup', 'interactKey', 'interactKeyN', 'interactTolerance', ...Object.values(KEY), ...Object.values(TOL)];
 
   let current = null;
 
@@ -438,6 +466,7 @@
       states.setValue('interactGroup', g);
     }
     states.setValue(KEY[kind], g);
+    states.setValue(TOL[kind], states.interactTolerance || 0); // the halo this question was asked with
     return g;
   }
 
@@ -464,7 +493,7 @@
     let any = false;
     for (const k of QUESTIONS) {
       const g = states[KEY[k]] || null;
-      q[k] = g;
+      q[k] = g ? { id: g.id, tol: states[TOL[k]] || 0 } : null;
       if (g) { any = true; g.fresh = false; }
     }
     if (!any) return;
@@ -479,12 +508,15 @@
     return new Set(hit && hit.shape.q.hover ? [hit.shape.q.hover.id] : []);
   }
 
-  function resolve(p, st, mx, my, skipId) {
+  // Which shape is under (mx, my) for one question: the nearest hit, each shape tested with the
+  // tolerance that question was asked with (a shape not answering the question has none).
+  function resolve(p, st, mx, my, skipId, kind = 'hover') {
     if (mx == null || !(p.width > 0) || !(p.height > 0)) return null;
     const shapes = st.frozen.shapes;
     if (!shapes.length) return null;
     if (skipId === undefined) skipId = st.drag ? st.drag.id : null;
     const skip = (s) => skipId && s.q.drag && s.q.drag.id === skipId; // what you hold is not in click space
+    const tolOf = (s) => (s.q[kind] ? s.q[kind].tol : 0);
     let best = null, score = Infinity;
     if (isGL(p)) {
       const nx = (2 * mx) / p.width - 1, ny = 1 - (2 * my) / p.height;
@@ -492,7 +524,7 @@
       const pxNdc = 2 / p.width;
       for (const s of shapes) {
         if (skip(s)) continue;
-        const h = hitGL(s, nx, ny, pxNdc);
+        const h = hitGL(s, nx, ny, pxNdc, tolOf(s));
         if (!h) continue;
         // nearest wins; at equal depth the later-drawn wins, like paint (p5 draws with LEQUAL)
         if (h.t < score - 1e-9 || (Math.abs(h.t - score) <= 1e-9 && s.order > best.shape.order)) {
@@ -508,7 +540,7 @@
         const inv = s.inv || (s.inv = s.m2d.inverse());
         const q = inv.transformPoint(pt);
         const upp = pd * Math.hypot(inv.a, inv.b); // one CSS pixel, in this shape's units
-        if (inShape2D(s, q.x, q.y, upp) && -s.order < score) { score = -s.order; best = { shape: s, u: q.x, v: q.y }; }
+        if (hit2D(s, q.x, q.y, upp, tolOf(s)) && -s.order < score) { score = -s.order; best = { shape: s, u: q.x, v: q.y }; }
       }
     }
     return best;
@@ -670,6 +702,13 @@
     fn.noDrop = function () { S(this).setValue(KEY.drop, null); };
     fn.noScroll = function () { S(this).setValue(KEY.scroll, null); };
     fn.noDistance = function () { S(this).setValue(KEY.distance, null); };
+
+    /** tolerance(px): questions asked after it are answered within px screen pixels of a shape's
+     *  edge, not only inside it. Drawing state like strokeWeight, but captured by the *question*:
+     *  `tolerance(12); scrolled(); noTolerance(); dragged();` gives the wheel a halo and the drag
+     *  none, on the same shapes. Screen pixels at any zoom. noTolerance() sets it back to 0. */
+    fn.tolerance = function (px) { S(this).setValue('interactTolerance', Math.max(0, +px || 0)); };
+    fn.noTolerance = function () { S(this).setValue('interactTolerance', 0); };
     fn.noInteract = function () {
       const states = S(this);
       for (const k of QUESTIONS) states.setValue(KEY[k], null);
@@ -822,7 +861,7 @@
       el.addEventListener('pointerdown', (e) => {
         const [mx, my] = canvasXY(e);
         st.down = { x: e.clientX, y: e.clientY, button: e.button };
-        const hit = resolve(this, st, mx, my);
+        const hit = resolve(this, st, mx, my, undefined, 'drag');
         st.drag = null;
         const g = hit && e.button === 0 ? hit.shape.q.drag : null;
         if (g) st.drag = { id: g.id, startX: mx, startY: my, lastX: mx, lastY: my, active: false, frame: -1, delta: null };
@@ -836,7 +875,7 @@
         const [mx, my] = canvasXY(e);
         if (drag && drag.active) {
           // a drop: whatever is under the release point, not counting what was held
-          const hit = resolve(this, st, mx, my, drag.id);
+          const hit = resolve(this, st, mx, my, drag.id, 'drop');
           st.hover = hit;
           st.hoveredIds = hoverSet(hit);
           const g = hit && hit.shape.q.drop;
@@ -844,7 +883,7 @@
           return;
         }
         if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > config.clickSlop) return;
-        const hit = resolve(this, st, mx, my, null);
+        const hit = resolve(this, st, mx, my, null, 'click');
         st.hover = hit;
         st.hoveredIds = hoverSet(hit);
         const g = hit && hit.shape.q.click;
@@ -853,7 +892,7 @@
       el.addEventListener('pointercancel', () => { st.down = null; st.drag = null; }, opt);
       el.addEventListener('wheel', (e) => {
         const [mx, my] = canvasXY(e);
-        const hit = resolve(this, st, mx, my);
+        const hit = resolve(this, st, mx, my, undefined, 'scroll');
         const g = hit && hit.shape.q.scroll;
         if (!g) return;
         const acc = st.nextScrolled.get(g.id) || { x: 0, y: 0 };
@@ -925,6 +964,8 @@
     noDrop: () => inst().noDrop(),
     noScroll: () => inst().noScroll(),
     noDistance: () => inst().noDistance(),
+    tolerance: (px) => inst().tolerance(px),
+    noTolerance: () => inst().noTolerance(),
     localMouse: () => inst().localMouse(),
     hitInfo: () => inst().hitInfo(),
     _math: { mul4, inv4, xf, roundRectSDF, pointInPoly, rayBox, raySphere, raySegment },

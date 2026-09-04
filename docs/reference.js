@@ -686,6 +686,95 @@ function draw() {
     seeAlso: ['noInteract', 'scrolled'],
   },
 
+  tolerance: {
+    group: 'Verbs',
+    signature: 'tolerance(px)',
+    summary: 'Questions asked after it also answer within px screen pixels of a shape\'s edge.',
+    description: [
+      'Drawing state, like <code>strokeWeight()</code>, but read by the <em>question</em>: each question captures the tolerance in force when it is asked, and every shape drawn after it is hit within that many screen pixels of its edge, not only inside. Screen pixels at any zoom, so a halo stays the same size however far the camera is.',
+      'Because the halo belongs to the question, the same shapes can have one halo for one question and none for another: <code>tolerance(12); scrolled(); noTolerance(); dragged();</code> lets the wheel land in the gaps between items in a list, while a drag still has to start on an item. <code>noTolerance()</code> sets it back to 0, and <code>pop()</code> restores whatever the enclosing scope had.',
+      'Exact for rects, polygons, lines and spheres; an estimate for ellipses and boxes, like <code>distance()</code>. A halo does not change what is nearest: where two shapes\' halos overlap, the usual rule applies, nearest along the ray in WEBGL, later drawn in 2D.',
+    ],
+    examples: [
+      {
+        caption: 'The wheel works in the gaps between the cards; a drag still needs a card.',
+        code: `
+let offset = 0;
+const cards = [];
+for (let i = 0; i < 12; i++) cards.push({ x: 40, label: 'card ' + (i + 1) });
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(LEFT, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  tolerance(16);                 // the wheel counts up to 16 px outside a card: the gaps
+  const s = scrolled();
+  noTolerance();                 // but a drag has to start on one
+  if (s) offset = constrain(offset + s.y, 0, cards.length * 44 - 200);
+
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    const y = 20 + i * 44 - offset;
+    if (y < -30 || y > height) continue;
+    push();
+    const d = dragged();
+    if (d) c.x = constrain(c.x + d.x, 0, width - 200);
+    fill(hovered() ? 90 : 60);
+    rect(c.x, y, 200, 32, 8);
+    fill(220);
+    text(c.label, c.x + 12, y + 16);
+    pop();
+  }
+}`,
+      },
+    ],
+    seeAlso: ['noTolerance', 'distance', 'scrolled'],
+  },
+
+  noTolerance: {
+    group: 'Verbs',
+    signature: 'noTolerance()',
+    summary: 'Questions asked after it answer only inside their shapes again.',
+    description: [
+      'Sets the tolerance back to 0, the default. Like the other negations it is scoped: <code>pop()</code> restores the enclosing scope\'s tolerance either way. Questions already asked keep the tolerance they captured.',
+    ],
+    examples: [
+      {
+        caption: 'Ask the forgiving question, turn the halo off, ask the strict one.',
+        code: `
+let hits = 0;
+
+function setup() {
+  createCanvas(320, 220);
+  textAlign(CENTER, CENTER);
+  textSize(14);
+}
+
+function draw() {
+  background(30);
+  noStroke();
+
+  tolerance(24);
+  const near = hovered();        // true within 24 px of the circle
+  noTolerance();
+  if (clicked()) hits++;         // only inside it
+  fill(near ? 80 : 50);
+  circle(160, 100, 80);
+  fill(220);
+  text(hits + ' clicks', 160, 100);
+  text(near ? 'near' : 'far', 160, 180);
+}`,
+      },
+    ],
+    seeAlso: ['tolerance'],
+  },
+
   localMouse: {
     group: 'Helpers',
     signature: 'localMouse()',

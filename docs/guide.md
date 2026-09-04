@@ -71,6 +71,17 @@ circle(x, y, 40);          // what you see
 
 For hover effects that should start before the mouse arrives, `distance()` is the better tool: it returns the pixels to the nearest edge, so `distance() < 16` is a generous hover and `1 - distance() / 100` is a glow.
 
+When an event has to *land* near a shape rather than be measured from it, use `tolerance(px)`: the questions asked after it answer within that many screen pixels of the edge. It is drawing state like `strokeWeight()`, but each question captures it when asked, so the same shapes can be forgiving for one question and strict for another:
+
+```js
+tolerance(12);
+const s = scrolled();      // the wheel counts in the gaps between the cards
+noTolerance();
+const d = dragged();       // a drag has to start on a card
+```
+
+That is the fix for a scrolling list whose items have gaps between them: no invisible backing shape, and nothing changes about what is in front of what.
+
 ## Dragging and dropping
 
 `dragged()` returns `{ x, y }` in the coordinates of the frame where you call it. Call it before your `translate` and the delta is in the parent's units, ready to add to a position. Everything drawn after it in the scope moves together, which is how a group drag works with no extra code: put `dragged()` on the group, not the pieces. Drag is claimed by the innermost scope that asked for it and stays claimed until release. The delta is delivered once per frame; a second `dragged()` on the same scope in the same frame returns `{ x: 0, y: 0 }`.

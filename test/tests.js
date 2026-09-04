@@ -325,6 +325,40 @@ test('distance() in WEBGL: sphere and planar shapes, in pixels', async () => {
   s.done();
 });
 
+// ---------------------------------------------------------------- tolerance
+
+test('tolerance(px): a question answers within px of the edge, in screen pixels at any zoom', async () => {
+  const s = await sketch(`function setup(){createCanvas(400,300)} function draw(){background(0);
+    push(); scale(2); tolerance(10); fill(hovered()?255:100); rect(50,50,100,50); pop();
+    fill(hovered()?255:100); rect(100,220,100,50)}`);
+  await s.moveTo(92, 150); assert.equal(s.hit(), 'rect', '8 screen px outside, at 2x zoom');
+  await s.moveTo(88, 150); assert.equal(s.hit(), null, '12 px outside');
+  await s.moveTo(150, 92); assert.equal(s.hit(), 'rect', 'above the top edge too');
+  await s.moveTo(95, 245); assert.equal(s.hit(), null, 'the rect after pop() was asked with no tolerance');
+  s.done();
+});
+
+test('tolerance belongs to the question: a halo for the wheel, none for the drag on the same shape', async () => {
+  const s = await sketch(`window.pos={x:100,y:100}; window.sc=null; function setup(){createCanvas(400,300)} function draw(){background(0);
+    tolerance(20); sc = scrolled(); noTolerance(); const d = dragged(); if (d) { pos.x += d.x; pos.y += d.y; }
+    fill(100); rect(pos.x, pos.y, 100, 50)}`);
+  await s.moveTo(90, 125);
+  assert.equal(s.wheel(90, 125, 40), true, 'the wheel 10 px outside is owned'); await s.frames(1);
+  assert.deepEqual(s.E('sc'), { x: 0, y: 40 }, 'and delivered');
+  await s.drag(90, 125, 150, 160); assert.equal(s.E('pos.x'), 100, 'a press 10 px outside does not grab');
+  await s.drag(150, 125, 210, 160); assert.equal(s.E('pos.x'), 160, 'a press inside does');
+  s.done();
+});
+
+test('tolerance in WEBGL: spheres and planar shapes, in screen pixels', async () => {
+  const s = await sketch(`function setup(){createCanvas(400,300,WEBGL)} function draw(){background(0); tolerance(10); hovered(); sphere(50); push(); translate(-120,0,0); hovered(); plane(40,40); pop()}`);
+  await s.moveTo(257, 150); assert.equal(s.hit(), 'sphere', '7 px off the sphere');
+  await s.moveTo(265, 150); assert.equal(s.hit(), null, '15 px off');
+  await s.moveTo(80 - 20 - 6, 150); assert.ok(s.hit() !== null, '6 px off the plane');
+  await s.moveTo(80 - 20 - 14, 150); assert.equal(s.hit(), null, '14 px off');
+  s.done();
+});
+
 // ---------------------------------------------------------------- housekeeping
 
 test('frameRate(Infinity) is applied unless the sketch chose a rate', async () => {

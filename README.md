@@ -79,6 +79,9 @@ To turn it off: `interact.config.frameRate = null;`
 
 `noHover()`, `noClick()`, `noDrag()`, `noDrop()`, `noScroll()`, `noDistance()` turn one
 question off for the shapes that follow, like `noFill()`; `noInteract()` turns off all six.
+[`tolerance(px)`](https://brysontang.github.io/p5.interact/docs/reference/tolerance.html)
+makes the questions asked after it answer within `px` screen pixels of a shape's edge, so
+the wheel can land in the gaps of a list while a drag still needs a card.
 [`push(key)`](https://brysontang.github.io/p5.interact/docs/reference/push.html) keys a
 scope by the object it draws. [`localMouse()`](https://brysontang.github.io/p5.interact/docs/reference/localMouse.html)
 and [`hitInfo()`](https://brysontang.github.io/p5.interact/docs/reference/hitInfo.html) are
