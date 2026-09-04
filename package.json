@@ -1,6 +1,6 @@
 {
   "name": "p5.interact",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Interaction for p5.js without ceremony: hovered(), clicked(), dragged(), dropped(), scoped by push/pop.",
   "main": "p5.interact.js",
   "files": [
